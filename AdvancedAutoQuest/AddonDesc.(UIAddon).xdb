@@ -4,6 +4,10 @@
   <AutoStart>true</AutoStart>
   <ScriptFileRefs>
     <Item href="AdvancedAutoQuest.lua"/>
+    <Item href="Scripts/LibDnD.lua"/>
+    <Item href="Scripts/ScriptAdvancedToString.lua"/>
+    <Item href="Scripts/ScriptLogExt.lua"/>
+    <Item href="Scripts/ScriptChatLogExt.lua"/>
   </ScriptFileRefs>
   <author>Illium</author>
   <localizedNameFileRef href="Name.txt"/>

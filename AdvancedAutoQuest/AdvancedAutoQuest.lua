@@ -4,12 +4,18 @@
 
 Global( "CID", 0 )
 Global( "BID", 0 )
+Global( "AvatarLocation", nil )
 
 --------------------------------------------------------------------------------
 --- Functions
 --------------------------------------------------------------------------------
 
 function On_EVENT_INTERACTION_STARTED(params)
+    local zoneInfo = cartographer.GetCurrentZoneInfo()
+    if zoneInfo.zonesMapId == 29862 then
+        LogInfo(zoneInfo)
+    end
+
     local retQuestList = avatar.GetReturnableQuests()
     for i, id in pairs(retQuestList) do
         local ai = avatar.GetQuestReward( id ).alternativeItems
