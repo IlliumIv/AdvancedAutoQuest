@@ -24,9 +24,34 @@ function On_EVENT_QUEST_RECEIVED(params)
     local qid = params.questId
     if avatar.GetSkipQuestCost( qid) <= avatar.GetDestinyPoints().total then
         avatar.SkipQuest( qid )
+    else
+        common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     end
     if avatar.IsTalking() then
         On_EVENT_INTERACTION_STARTED()
+    end
+end
+
+function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
+    local bookQuestList = avatar.GetQuestBook()
+    if bookQuestList ~= nil then
+        for i, id in pairs(bookQuestList) do
+            if avatar.GetSkipQuestCost(avatar.GetQuestInfo(id)) <= avatar.GetDestinyPoints().total then
+                avatar.SkipQuest( qid )
+            end
+        end
+    end
+    local bookQuestList = avatar.GetQuestBook()
+    if bookQuestList ~= nil then
+        local NothingToSkip = true
+        for i, id in pairs(bookQuestList) do
+            if avatar.GetQuestInfo(id).canBeSkipped == true then
+                NothingToSkip = false
+            end
+        end
+        if NothingToSkip then
+            common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+        end
     end
 end
 
@@ -49,7 +74,7 @@ end
 
 function AvatarAcceptQuests()
     local availableQuestList = avatar.GetAvailableQuests()
-    if availableQuestList then
+    if availableQuestList ~= nil then
         for i, id in pairs(availableQuestList) do
             local qInf = avatar.GetQuestInfo( id )
             if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
@@ -61,7 +86,7 @@ end
 
 function AvatarAcceptAddQuests (zoneInfo)
     local availableQuestList = avatar.GetAvailableQuests()
-    if availableQuestList then
+    if availableQuestList ~= nil then
         for key, value in pairs(ZonesTable) do
             if zoneInfo.zonesMapId == key then
                 --Отладка для получения информации о дополнительных квестах и текущей зоне
