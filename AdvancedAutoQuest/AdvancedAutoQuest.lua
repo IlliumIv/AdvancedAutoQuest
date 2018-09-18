@@ -15,7 +15,22 @@ Global("ZonesTable", {
 
 function On_EVENT_INTERACTION_STARTED(params)
     AvatarReturnQuest()
-    AvatarAcceptQuests()
+--    AvatarAcceptQuests()
+
+    local questTable = {}
+    local availableQuestList = avatar.GetAvailableQuests()
+    if availableQuestList ~= nil then
+        for i, id in pairs(availableQuestList) do
+            local qInf = avatar.GetQuestInfo(id)
+            if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
+                table.insert (questTable[#questTable + 1], id)
+            else
+                for key, value in pairs(ZonesTable) do
+
+                end
+            end
+        end
+    end
     local zoneInfo = cartographer.GetCurrentZoneInfo()
     AvatarAcceptAddQuests (zoneInfo)
 end
@@ -80,6 +95,8 @@ function CommonAcceptQuests(questTable)
         end
     end
 end
+
+
 
 function AvatarAcceptQuests()
     local availableQuestList = avatar.GetAvailableQuests()
