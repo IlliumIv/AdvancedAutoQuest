@@ -72,6 +72,15 @@ function AvatarReturnQuest()
     end
 end
 
+function CommonAcceptQuests(questTable)
+    local qTable = questTable
+    if qTable ~= nil then
+        for i, id in pairs(qTable) do
+            avatar.AcceptQuest(id)
+        end
+    end
+end
+
 function AvatarAcceptQuests()
     local availableQuestList = avatar.GetAvailableQuests()
     if availableQuestList ~= nil then

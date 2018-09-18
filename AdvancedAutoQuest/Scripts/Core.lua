@@ -1,0 +1,96 @@
+Global("localization", "eng_eu")
+Global("OK", false)
+Global("called", false)
+--------------------------------------------------------------------------------
+-- Helper functions
+--------------------------------------------------------------------------------
+function GetTableSize( t )
+	if not t then
+		return 0
+	end
+	local count = 0
+	for _, _ in pairs(t) do
+		count = count + 1
+	end
+	return count
+end
+
+-- +-------------------+
+-- |Find Value in table|
+-- +-------------------+
+function isInTable(t,v)
+	for _, x in pairs(t) do
+		if Compare(x,v) then
+			return true
+		end
+	end
+	return false
+end
+
+-- +-------------------------+
+-- | Get text from game files|
+-- +-------------------------+
+function GetText(l)
+	local VT = common.CreateValuedText()
+	VT:SetFormat(userMods.ToWString("<html><t href='"..l.."'/></html>"))
+	local text
+	text = userMods.FromWString(common.ExtractWStringFromValuedText(VT))
+	return text
+end
+
+-- +----------------------------------+
+-- |AO game Localization detection    |
+-- |New conceptual detection by Ciuine|
+-- |Aesthetically improved by Ramirez |
+-- +----------------------------------+
+
+local function GetGameLocalization()
+	local id = options.GetOptionsByCustomType( "interface_option_localization" )[ 0 ]
+	if id then
+		local values = options.GetOptionInfo( id ).values
+		local value = values and values[ 0 ]
+		local name = value and value.name
+		if name then
+			return userMods.FromWString( name )
+		else
+			return localization
+		end
+	end
+end
+localization = GetGameLocalization()
+
+function GTL( strTextName )
+	return Locales[ localization ][ strTextName ] or Locales[ "eng_eu" ][ strTextName ] or strTextName
+end
+
+-- +---------------------------------------+
+-- |Shortcuts for WString/String conversion|
+-- +---------------------------------------+
+function toWS( arg )
+	return userMods.ToWString(arg)
+end
+
+function fromWS( arg )
+	return userMods.FromWString(arg)
+end
+
+---Push-to-Chat
+
+function PushToChat(message,size,color)
+	local fsize = size or 18
+	local textFormat = string.format('<header color="0x%s" fontsize="%s" outline="1" shadow="1"><rs class="class">%s</rs></header>',color, tostring(fsize),message)
+	local VT = common.CreateValuedText()
+	VT:SetFormat(toWS(textFormat))
+	local chatContainer = stateMainForm:GetChildUnchecked("ChatLog", false):GetChildUnchecked("Area", false):GetChildUnchecked("Panel02",false):GetChildUnchecked("Container", false)
+	chatContainer:PushFrontValuedText(VT)
+end
+
+function PushToChatSimple(message)
+	local textFormat = string.format("<html fontsize='18'><rs class='class'>%s</rs></html>",message)
+	local VT = common.CreateValuedText()
+	VT:SetFormat(toWS(textFormat))
+	VT:SetClassVal("class", "LogColorYellow")
+	local chatContainer = stateMainForm:GetChildUnchecked("ChatLog", false):GetChildUnchecked("Area", false):GetChildUnchecked("Panel02",false):GetChildUnchecked("Container", false)
+	chatContainer:PushFrontValuedText(VT)
+
+end

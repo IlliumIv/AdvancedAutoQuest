@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <UIAddon>
-  <Name>AutoQuest</Name>
-  <AutoStart>true</AutoStart>
-  <ScriptFileRefs>
-    <Item href="AdvancedAutoQuest.lua"/>
-    <Item href="Scripts/LibDnD.lua"/>
-    <Item href="Scripts/ScriptAdvancedToString.lua"/>
-    <Item href="Scripts/ScriptLogExt.lua"/>
-    <Item href="Scripts/ScriptChatLogExt.lua"/>
-  </ScriptFileRefs>
-  <author>Illium</author>
-  <localizedNameFileRef href="Name.txt"/>
-  <localizedDescFileRef href="Desc.txt"/>
+    <Name>AutoQuest</Name>
+    <AutoStart>true</AutoStart>
+    <ScriptFileRefs>
+        <Item href="Scripts/Locales.txt"/>
+        <Item href="Scripts/Core.lua"/>
+        <Item href="Scripts/LibDnD.lua"/>
+    <!--<Item href="Scripts/ScriptAdvancedToString.lua"/>
+        <Item href="Scripts/ScriptChatLogExt.lua"/> -->
+        <Item href="Scripts/ScriptLogExt.lua"/>
+        <Item href="AdvancedAutoQuest.lua"/>
+    </ScriptFileRefs>
+    <author>Illium</author>
+    <localizedNameFileRef href="Name.txt"/>
+    <localizedDescFileRef href="Desc.txt"/>
 </UIAddon>
