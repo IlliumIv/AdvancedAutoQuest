@@ -8,15 +8,15 @@ Global( "Locales", {
 --РУССКАЯ ЛОКАЛИЗАЦИЯ (RUSSIAN LOCALIZATION)
 ----------------------------------------------
 	[ "rus" ] = {
-		[ "Test" ]      = "Отображать метку",
-		[ "Kingdom Of Elements" ]     = "Отображать стрелку с расстоянием",
+		[ "Novograd" ]      = "Novograd",
+		[ "Kingdom Of Elements" ]     = "Kingdom Of Elements",
 	},
 
 ----------------------------------------------
 --ENGLISH LOCALIZATION
 ----------------------------------------------
 	[ "eng_eu" ] = {
-		[ "Test" ]      = "Тест",
+		[ "Novograd" ]      = "Новоград",
 		[ "Kingdom Of Elements" ]     = "Царство Стихий",
 	}
 

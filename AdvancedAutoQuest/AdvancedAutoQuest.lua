@@ -3,8 +3,8 @@
 --------------------------------------------------------------------------------
 
 Global("zonesTable", {
-    ["Test"] = {"Quest1.sysName", "Quest2.sysName"},
-    ["Kingdom Of Elements"] = {"Quest1.sysName", "Quest2.sysName"} -- Царство Стихий
+    ["Novograd"] = {},
+    ["Kingdom Of Elements"] = {"Center_1", "Center_3"} -- Царство Стихий
 })
 
 --------------------------------------------------------------------------------
@@ -35,32 +35,37 @@ function On_EVENT_INTERACTION_STARTED(params)
                 if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
                     table.insert (currentQuestTable, #currentQuestTable + 1, id)
                 else
-                    table.insert (currentAdditionalQuestsTable, #currentQuestTable + 1, id)
+                    table.insert (currentAdditionalQuestsTable, #currentAdditionalQuestsTable + 1, id)
                 end
             end
             if not IsEmpty(currentAdditionalQuestsTable) then
                 local currentZone = cartographer.GetCurrentZoneInfo().zoneName
                 for key, value in pairs(zonesTable) do
                     if GTL(key) == fromWS(currentZone) then
-                        for i, id in pairs(currentAdditionalQuestsTable) do
+                        for _, id in pairs(currentAdditionalQuestsTable) do
                             local qInf = avatar.GetQuestInfo(id)
                             --Отладка
-                            LogInfo(fromWS(common.ExtractWStringFromValuedText(qInf.name)), " - ", qInf.sysName)
+                            local count = 0
                             --Отладка
-                            for k, v in pairs(zonesTable[key]) do
+                            for i, v in pairs(zonesTable[key]) do
                                 if v == qInf.sysName then
-                                    table.insert (currentAdditionalQuestsTable, #currentQuestTable + 1, id)
+                                    table.insert (currentQuestTable, #currentQuestTable + 1, id)
                                     break
                                 end
+                                --Отладка
+                                if id ~= currentQuestTable[#currentQuestTable] then
+                                    if count == 0 then
+                                        LogInfo(fromWS(currentZone), " : ", fromWS(common.ExtractWStringFromValuedText(qInf.name)), " - ", qInf.sysName)
+                                    end
+                                    count = count + 1
+                                end
+                                --Отладка
                             end
                         end
                     end
                 end
             end
             if not IsEmpty(currentQuestTable) then
-                --Отладка
-                LogInfo(currentQuestTable)
-                --Отладка
                 CommonAcceptQuests (currentQuestTable)
             end
         end
@@ -69,10 +74,18 @@ end
 
 function On_EVENT_QUEST_RECEIVED(params)
     local qid = params.questId
-    if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
-        avatar.SkipQuest(qid)
+    local qInf = avatar.GetQuestInfo(qid)
+    if qInf.canBeSkipped then
+        if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
+            avatar.SkipQuest(qid)
+        else
+            common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+        end
+        --Отладка
     else
-        common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+        local currentZone = cartographer.GetCurrentZoneInfo().zoneName
+        LogInfo(fromWS(currentZone), " : ", fromWS(common.ExtractWStringFromValuedText(qInf.name)), " - ", qInf.sysName)
+        --Отладка
     end
     if avatar.IsTalking() then
         On_EVENT_INTERACTION_STARTED()
