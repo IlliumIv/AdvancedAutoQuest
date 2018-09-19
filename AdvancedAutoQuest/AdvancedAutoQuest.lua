@@ -74,7 +74,6 @@ function On_EVENT_QUEST_RECEIVED(params)
 end
 
 function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
-    common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     while SkipAllQuest() < (avatar.GetDestinyPoints().total - 1) do
     end
 end
@@ -102,6 +101,9 @@ function SkipAllQuest()
                 needDestinyPoints = needDestinyPoints + currentNeedDestinyPoints
             end
         end
+    end
+    if needDestinyPoints == 0 then
+        common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     end
     return needDestinyPoints
 end
