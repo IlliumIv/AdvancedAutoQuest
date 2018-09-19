@@ -1,6 +1,4 @@
 Global("localization", "eng_eu")
-Global("OK", false)
-Global("called", false)
 --------------------------------------------------------------------------------
 -- Helper functions
 --------------------------------------------------------------------------------
@@ -13,18 +11,6 @@ function GetTableSize( t )
 		count = count + 1
 	end
 	return count
-end
-
--- +-------------------+
--- |Find Value in table|
--- +-------------------+
-function isInTable(t,v)
-	for _, x in pairs(t) do
-		if Compare(x,v) then
-			return true
-		end
-	end
-	return false
 end
 
 -- +-------------------------+

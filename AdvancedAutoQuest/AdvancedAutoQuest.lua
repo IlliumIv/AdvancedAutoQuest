@@ -25,14 +25,14 @@ function On_EVENT_INTERACTION_STARTED(params)
             if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
                 table.insert (questTable[#questTable + 1], id)
             else
+                local zoneInfo = cartographer.GetCurrentZoneInfo()
                 for key, value in pairs(ZonesTable) do
 
                 end
             end
         end
     end
-    local zoneInfo = cartographer.GetCurrentZoneInfo()
-    AvatarAcceptAddQuests (zoneInfo)
+--    AvatarAcceptAddQuests (zoneInfo)
 end
 
 function On_EVENT_QUEST_RECEIVED(params)
