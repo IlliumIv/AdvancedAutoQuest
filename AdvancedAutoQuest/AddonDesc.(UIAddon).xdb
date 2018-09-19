@@ -9,6 +9,7 @@
     <!--<Item href="Scripts/ScriptAdvancedToString.lua"/>
         <Item href="Scripts/ScriptChatLogExt.lua"/> -->
         <Item href="Scripts/ScriptLogExt.lua"/>
+        <Item href="Scripts/Mainscript.lua"/>
         <Item href="AdvancedAutoQuest.lua"/>
     </ScriptFileRefs>
     <author>Illium</author>

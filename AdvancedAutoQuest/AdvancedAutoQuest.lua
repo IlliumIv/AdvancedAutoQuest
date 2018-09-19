@@ -2,11 +2,9 @@
 --- Globals
 --------------------------------------------------------------------------------
 
---Global("CID", 0)
---Global("BID", 0)
-Global("ZonesTable", {
-    [0] = {"Quest1.sysName", "Quest2.sysName"},
-    [29862] = {"Quest1.sysName", "Quest2.sysName"} -- Царство Стихий
+Global("zonesTable", {
+    ["Test"] = {"Quest1.sysName", "Quest2.sysName"},
+    ["Kingdom Of Elements"] = {"Quest1.sysName", "Quest2.sysName"} -- Царство Стихий
 })
 
 --------------------------------------------------------------------------------
@@ -14,31 +12,59 @@ Global("ZonesTable", {
 --------------------------------------------------------------------------------
 
 function On_EVENT_INTERACTION_STARTED(params)
-    AvatarReturnQuest()
---    AvatarAcceptQuests()
-
-    local questTable = {}
-    local availableQuestList = avatar.GetAvailableQuests()
-    if availableQuestList ~= nil then
-        for i, id in pairs(availableQuestList) do
-            local qInf = avatar.GetQuestInfo(id)
-            if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
-                table.insert (questTable[#questTable + 1], id)
-            else
-                local zoneInfo = cartographer.GetCurrentZoneInfo()
-                for key, value in pairs(ZonesTable) do
-
+    local unitQuestsTables = object.GetInteractorQuests(avatar.GetInterlocutor())
+    if not IsEmpty(unitQuestsTables) then
+        if not IsEmpty(unitQuestsTables.readyToAccept) then
+            for i, id in pairs(unitQuestsTables.readyToAccept) do
+                local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
+                if IsEmpty(itemsQuestsReward) then
+                    avatar.ReturnQuest(id, nil)
+                else
+                    for key, value in pairs(itemsQuestsReward) do
+                        avatar.ReturnQuest(id, value)
+                        break
+                    end
                 end
             end
         end
+        if not IsEmpty(unitQuestsTables.readyToGive) then
+            local currentQuestTable = {}
+            local currentAdditionalQuestsTable = {}
+            for i, id in pairs(unitQuestsTables.readyToGive) do
+                local qInf = avatar.GetQuestInfo(id)
+                if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
+                    table.insert (currentQuestTable[#currentQuestTable + 1], id)
+                else
+                    table.insert (currentAdditionalQuestsTable[#currentAdditionalQuestsTable + 1], id)
+                end
+            end
+            if not IsEmpty(currentAdditionalQuestsTable) then
+                local currentZone = cartographer.GetCurrentZoneInfo().zoneName
+                for key, value in pairs(zonesTable) do
+                    if GTL(key) == currentZone then
+                        for i, id in pairs(currentAdditionalQuestsTable) do
+                            local qInf = avatar.GetQuestInfo(id)
+                            for k, v in pairs(zonesTable.value) do
+                                if v == qInf.sysName then
+                                    table.insert (currentQuestTable[#currentQuestTable + 1], id)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            if not IsEmpty(currentQuestTable) then
+                CommonAcceptQuests (currentQuestTable)
+            end
+        end
     end
---    AvatarAcceptAddQuests (zoneInfo)
 end
 
 function On_EVENT_QUEST_RECEIVED(params)
     local qid = params.questId
-    if avatar.GetSkipQuestCost( qid) <= avatar.GetDestinyPoints().total then
-        avatar.SkipQuest( qid )
+    if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
+        avatar.SkipQuest(qid)
     else
         common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     end
@@ -48,91 +74,36 @@ function On_EVENT_QUEST_RECEIVED(params)
 end
 
 function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
-    local bookQuestList = avatar.GetQuestBook()
-    if bookQuestList ~= nil then
-        for i, id in pairs(bookQuestList) do
-            if avatar.GetSkipQuestCost(avatar.GetQuestInfo(id)) <= avatar.GetDestinyPoints().total then
-                avatar.SkipQuest( qid )
-            end
-        end
-    end
-    local bookQuestList = avatar.GetQuestBook()
-    if bookQuestList ~= nil then
-        local NothingToSkip = true
-        for i, id in pairs(bookQuestList) do
-            if avatar.GetQuestInfo(id).canBeSkipped == true then
-                NothingToSkip = false
-            end
-        end
-        if NothingToSkip then
-            common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
-        end
+    common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+    while SkipAllQuest() < (avatar.GetDestinyPoints().total - 1) do
     end
 end
 
-function AvatarReturnQuest()
-    local retQuestList = avatar.GetReturnableQuests()
-    if retQuestList then
-        for i, id in pairs(retQuestList) do
-            local ai = avatar.GetQuestReward( id ).alternativeItems
-            if #ai == 0 then
-                avatar.ReturnQuest( id, nil )
-            else
-                for key, val in pairs(ai) do
-                    avatar.ReturnQuest( id, val )
-                    break
-                end
-            end
-        end
-    end
-end
-
-function CommonAcceptQuests(questTable)
-    local qTable = questTable
-    if qTable ~= nil then
+function CommonAcceptQuests(qTable)
+    if qTable then
         for i, id in pairs(qTable) do
             avatar.AcceptQuest(id)
         end
     end
 end
 
-
-
-function AvatarAcceptQuests()
-    local availableQuestList = avatar.GetAvailableQuests()
-    if availableQuestList ~= nil then
-        for i, id in pairs(availableQuestList) do
-            local qInf = avatar.GetQuestInfo( id )
-            if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
-                avatar.AcceptQuest( id )
+function SkipAllQuest()
+    local qTable = avatar.GetQuestBook()
+    if not qTable then
+        return
+    end
+    local needDestinyPoints = 0
+    for _, id in pairs(qTable) do
+        if avatar.GetQuestInfo(id).canBeSkipped == true then
+            local currentNeedDestinyPoints = avatar.GetSkipQuestCost(id)
+            if currentNeedDestinyPoints <= avatar.GetDestinyPoints().total then
+                avatar.SkipQuest(id)
+            else
+                needDestinyPoints = needDestinyPoints + currentNeedDestinyPoints
             end
         end
     end
-end
-
-function AvatarAcceptAddQuests (zoneInfo)
-    local availableQuestList = avatar.GetAvailableQuests()
-    if availableQuestList ~= nil then
-        for key, value in pairs(ZonesTable) do
-            if zoneInfo.zonesMapId == key then
-                --Отладка для получения информации о дополнительных квестах и текущей зоне
-                LogInfo(zoneInfo)
-                for k, id in pairs(availableQuestList) do
-                    local qInf = avatar.GetQuestInfo( id )
-                    LogInfo(qInf)
-                end
-                --Отладка для получения информации о дополнительных квестах и текущей зоне
-                for i = 1, #value, 1 do
-                    for k, id in pairs(availableQuestList) do
-                        local qInf = avatar.GetQuestInfo( id )
-                        if qInf.sysName == value[i] then
-                            avatar.AcceptQuest( id )
-                        end
-                    end
-                end
-            end
-        end
-    end
+    return needDestinyPoints
 end
 
 --------------------------------------------------------------------------------
@@ -142,6 +113,7 @@ end
 function Init()
     common.RegisterEventHandler(On_EVENT_QUEST_RECEIVED, "EVENT_QUEST_RECEIVED")
     common.RegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
+    common.UnRegisterEventHandler(Init, "EVENT_AVATAR_CREATED")
 end
 
 --------------------------------------------------------------------------------
