@@ -16,13 +16,13 @@ end
 -- +-------------------------+
 -- | Get text from game files|
 -- +-------------------------+
-function GetText(l)
-    local VT = common.CreateValuedText()
-    VT:SetFormat(userMods.ToWString("<html><t href='"..l.."'/></html>"))
-    local text
-    text = userMods.FromWString(common.ExtractWStringFromValuedText(VT))
-    return text
-end
+--function GetText(l)
+--    local VT = common.CreateValuedText()
+--    VT:SetFormat(userMods.ToWString("<html><t href='"..l.."'/></html>"))
+--    local text
+--    text = userMods.FromWString(common.ExtractWStringFromValuedText(VT))
+--    return text
+--end
 
 -- +----------------------------------+
 -- |AO game Localization detection    |

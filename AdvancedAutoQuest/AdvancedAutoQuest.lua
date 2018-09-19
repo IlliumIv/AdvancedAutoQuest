@@ -33,20 +33,23 @@ function On_EVENT_INTERACTION_STARTED(params)
             for i, id in pairs(unitQuestsTables.readyToGive) do
                 local qInf = avatar.GetQuestInfo(id)
                 if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
-                    table.insert (currentQuestTable[#currentQuestTable + 1], id)
+                    table.insert (currentQuestTable, #currentQuestTable + 1, id)
                 else
-                    table.insert (currentAdditionalQuestsTable[#currentAdditionalQuestsTable + 1], id)
+                    table.insert (currentAdditionalQuestsTable, #currentQuestTable + 1, id)
                 end
             end
             if not IsEmpty(currentAdditionalQuestsTable) then
                 local currentZone = cartographer.GetCurrentZoneInfo().zoneName
                 for key, value in pairs(zonesTable) do
-                    if GTL(key) == currentZone then
+                    if GTL(key) == fromWS(currentZone) then
                         for i, id in pairs(currentAdditionalQuestsTable) do
                             local qInf = avatar.GetQuestInfo(id)
-                            for k, v in pairs(zonesTable.value) do
+                            --Отладка
+                            LogInfo(fromWS(common.ExtractWStringFromValuedText(qInf.name)), " - ", qInf.sysName)
+                            --Отладка
+                            for k, v in pairs(zonesTable[key]) do
                                 if v == qInf.sysName then
-                                    table.insert (currentQuestTable[#currentQuestTable + 1], id)
+                                    table.insert (currentAdditionalQuestsTable, #currentQuestTable + 1, id)
                                     break
                                 end
                             end
@@ -55,6 +58,9 @@ function On_EVENT_INTERACTION_STARTED(params)
                 end
             end
             if not IsEmpty(currentQuestTable) then
+                --Отладка
+                LogInfo(currentQuestTable)
+                --Отладка
                 CommonAcceptQuests (currentQuestTable)
             end
         end
