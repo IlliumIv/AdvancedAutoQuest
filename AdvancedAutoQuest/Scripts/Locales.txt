@@ -8,16 +8,18 @@ Global( "Locales", {
 --РУССКАЯ ЛОКАЛИЗАЦИЯ (RUSSIAN LOCALIZATION)
 ----------------------------------------------
 	[ "rus" ] = {
-		[ "Novograd" ]      = "Novograd",
-		[ "Kingdom Of Elements" ]     = "Kingdom Of Elements",
+		[ "Save" ]      = "Сохранить",
+		[ "Accept" ]     = "Применить",
+		[ "Accept and remember" ]     = "Принять и запомнить",
 	},
 
 ----------------------------------------------
 --ENGLISH LOCALIZATION
 ----------------------------------------------
 	[ "eng_eu" ] = {
-		[ "Novograd" ]      = "Новоград",
-		[ "Kingdom Of Elements" ]     = "Царство Стихий",
+		[ "Save" ]      = "Save",
+		[ "Accept" ]     = "Accept",
+		[ "Accept and remember" ]     = "Accept and remember",
 	}
 
 })

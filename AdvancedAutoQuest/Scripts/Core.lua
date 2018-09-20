@@ -1,28 +1,4 @@
 Global("localization", "eng_eu")
---------------------------------------------------------------------------------
--- Helper functions
---------------------------------------------------------------------------------
-function GetTableSize( t )
-    if not t then
-        return 0
-    end
-    local count = 0
-    for _, _ in pairs(t) do
-        count = count + 1
-    end
-    return count
-end
-
--- +-------------------------+
--- | Get text from game files|
--- +-------------------------+
---function GetText(l)
---    local VT = common.CreateValuedText()
---    VT:SetFormat(userMods.ToWString("<html><t href='"..l.."'/></html>"))
---    local text
---    text = userMods.FromWString(common.ExtractWStringFromValuedText(VT))
---    return text
---end
 
 -- +----------------------------------+
 -- |AO game Localization detection    |
@@ -82,7 +58,6 @@ function PushToChatSimple(message)
 end
 
 ---Проверка, пуст ли массив (быстрее, чем получать его размер)
-
 function IsEmpty(t)
     if not t then
         return true
