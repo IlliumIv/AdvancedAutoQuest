@@ -28,11 +28,11 @@ end
 -- +---------------------------------------+
 -- |Shortcuts for WString/String conversion|
 -- +---------------------------------------+
-function toWS( arg )
+function toWScore( arg )
     return userMods.ToWString(arg)
 end
 
-function fromWS( arg )
+function fromWScore( arg )
     return userMods.FromWString(arg)
 end
 

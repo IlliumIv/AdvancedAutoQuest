@@ -32,9 +32,9 @@ function On_EVENT_INTERACTION_STARTED(params)
                     end
                 end
                 if not IsEmpty(currentAdditionalQuestsTable) then
-                    local lName = fromWS(common.ExtractWStringFromValuedText(cartographer.GetCurrentZoneInfo().zoneName))
+                    local lName = fromWScore(cartographer.GetCurrentZoneInfo().zoneName)
                     for _, qId in pairs(currentAdditionalQuestsTable) do
-                        local qName = fromWS(common.ExtractWStringFromValuedText(avatar.GetQuestInfo(qId).name))
+                        local qName = fromWScore(common.ExtractWStringFromValuedText(avatar.GetQuestInfo(qId).name))
                         if IsInList(qName, lName, QuestsLocales) then
                             table.insert (currentQuestTable, #currentQuestTable + 1, id)
                         end
@@ -61,7 +61,7 @@ function On_EVENT_QUEST_RECEIVED(params)
         end
         --Отладка
     else
-        LogInfo(fromWS(cartographer.GetCurrentZoneInfo().zoneName), " : ", fromWS(common.ExtractWStringFromValuedText(qInf.name)))
+        LogInfo(fromWScore(cartographer.GetCurrentZoneInfo().zoneName), " : ", fromWScore(common.ExtractWStringFromValuedText(qInf.name)))
         --Отладка
     end
     if avatar.IsTalking() then
@@ -102,6 +102,9 @@ function SkipAllQuest()
 end
 
 function IsInList (questName, locationName, listName)
+    LogInfo(locationName)
+    LogInfo(localization)
+    LogInfo(listName[localization][locationName])
     if listName[localization][locationName] then
         for i, q in pairs(listName[localization][locationName]) do
             if questName == q then
