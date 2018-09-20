@@ -2,9 +2,11 @@
 --- Globals
 --------------------------------------------------------------------------------
 
+local interlocutorId
+
 Global("zonesTable", {
-    ["Novograd"] = {},
-    ["Kingdom Of Elements"] = {"Center_1", "Center_3"} -- Царство Стихий
+    ["Novograd"] = {"IM_HaloRevard", "MegaGoal_L_IslandDaily_07", "GuildQuest_1_1", "GuildQuest_3_1", "GuildQuest_2_17"},
+    ["Kingdom Of Elements"] = {"Center_1", "Center_2", "Center_3", "Ice_1", "Ice_2", "Ice_3", "Snow_1", "Snow_2", "Snow_3", "Snow_4", "Snow_5", "Snow_6", "Snow_7", "Snow_8", "Snow_9", "Air_1", "Air_2", "Air_3", "Air_4", "Stone_1", "Water_1", "Water_2", "Water_3", } -- Царство Стихий
 })
 
 --------------------------------------------------------------------------------
@@ -12,61 +14,53 @@ Global("zonesTable", {
 --------------------------------------------------------------------------------
 
 function On_EVENT_INTERACTION_STARTED(params)
-    local unitQuestsTables = object.GetInteractorQuests(avatar.GetInterlocutor())
-    if not IsEmpty(unitQuestsTables) then
-        if not IsEmpty(unitQuestsTables.readyToAccept) then
-            for i, id in pairs(unitQuestsTables.readyToAccept) do
-                local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
-                if IsEmpty(itemsQuestsReward) then
-                    avatar.ReturnQuest(id, nil)
-                else
-                    for key, value in pairs(itemsQuestsReward) do
-                        avatar.ReturnQuest(id, value)
-                        break
-                    end
-                end
-            end
-        end
-        if not IsEmpty(unitQuestsTables.readyToGive) then
-            local currentQuestTable = {}
-            local currentAdditionalQuestsTable = {}
-            for i, id in pairs(unitQuestsTables.readyToGive) do
-                local qInf = avatar.GetQuestInfo(id)
-                if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
-                    table.insert (currentQuestTable, #currentQuestTable + 1, id)
-                else
-                    table.insert (currentAdditionalQuestsTable, #currentAdditionalQuestsTable + 1, id)
-                end
-            end
-            if not IsEmpty(currentAdditionalQuestsTable) then
-                local currentZone = cartographer.GetCurrentZoneInfo().zoneName
-                for key, value in pairs(zonesTable) do
-                    if GTL(key) == fromWS(currentZone) then
-                        for _, id in pairs(currentAdditionalQuestsTable) do
-                            local qInf = avatar.GetQuestInfo(id)
-                            --Отладка
-                            local count = 0
-                            --Отладка
-                            for i, v in pairs(zonesTable[key]) do
-                                if v == qInf.sysName then
-                                    table.insert (currentQuestTable, #currentQuestTable + 1, id)
-                                    break
-                                end
-                                --Отладка
-                                if id ~= currentQuestTable[#currentQuestTable] then
-                                    if count == 0 then
-                                        LogInfo(fromWS(currentZone), " : ", fromWS(common.ExtractWStringFromValuedText(qInf.name)), " - ", qInf.sysName)
-                                    end
-                                    count = count + 1
-                                end
-                                --Отладка
-                            end
+    interlocutorId = avatar.GetInterlocutor()
+    if interlocutorId then
+        local unitQuestsTables = object.GetInteractorQuests(interlocutorId)
+        if not IsEmpty(unitQuestsTables) then
+            if not IsEmpty(unitQuestsTables.readyToAccept) then
+                for i, id in pairs(unitQuestsTables.readyToAccept) do
+                    local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
+                    if IsEmpty(itemsQuestsReward) then
+                        avatar.ReturnQuest(id, nil)
+                    else
+                        for key, value in pairs(itemsQuestsReward) do
+                            avatar.ReturnQuest(id, value)
+                            break
                         end
                     end
                 end
             end
-            if not IsEmpty(currentQuestTable) then
-                CommonAcceptQuests (currentQuestTable)
+            if not IsEmpty(unitQuestsTables.readyToGive) then
+                local currentQuestTable = {}
+                local currentAdditionalQuestsTable = {}
+                for i, id in pairs(unitQuestsTables.readyToGive) do
+                    local qInf = avatar.GetQuestInfo(id)
+                    if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
+                        table.insert (currentQuestTable, #currentQuestTable + 1, id)
+                    else
+                        table.insert (currentAdditionalQuestsTable, #currentAdditionalQuestsTable + 1, id)
+                    end
+                end
+                if not IsEmpty(currentAdditionalQuestsTable) then
+                    local currentZone = cartographer.GetCurrentZoneInfo().zoneName
+                    for key, value in pairs(zonesTable) do
+                        if GTL(key) == fromWS(currentZone) then
+                            for _, id in pairs(currentAdditionalQuestsTable) do
+                                local qInf = avatar.GetQuestInfo(id)
+                                for i, v in pairs(zonesTable[key]) do
+                                    if v == qInf.sysName then
+                                        table.insert (currentQuestTable, #currentQuestTable + 1, id)
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                if not IsEmpty(currentQuestTable) then
+                    CommonAcceptQuests (currentQuestTable)
+                end
             end
         end
     end
