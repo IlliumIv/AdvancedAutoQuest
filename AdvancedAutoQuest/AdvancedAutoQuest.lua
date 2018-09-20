@@ -77,6 +77,9 @@ function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
     if count == 0 then
         common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     end
+    if avatar.IsTalking() then
+        On_EVENT_INTERACTION_STARTED()
+    end
 end
 
 function SkipAllQuest()
