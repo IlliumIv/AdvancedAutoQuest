@@ -62,7 +62,7 @@ function IsEmpty(t)
     if not t then
         return true
     end
-    for _, _ in pairs(t) do
+    for _, i in pairs(t) do
         return false
     end
     return true

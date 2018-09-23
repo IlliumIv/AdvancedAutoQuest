@@ -11,6 +11,15 @@
         <Item href="Scripts/ScriptLogExt.lua"/>
         <Item href="AdvancedAutoQuest.lua"/>
     </ScriptFileRefs>
+<!--
+    <MainFormId>Main</MainFormId>
+    <Forms>
+        <Item>
+            <Id>Main</Id>
+            <Form href="Textures/MainForm.(WidgetForm).xdb#xpointer(/WidgetForm)"/>
+        </Item>
+    </Forms>
+-->
     <author>Illium</author>
     <localizedNameFileRef href="Name.txt"/>
     <localizedDescFileRef href="Desc.txt"/>
