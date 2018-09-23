@@ -53,7 +53,7 @@ function On_EVENT_INTERACTION_STARTED()
         end
         if not avatar.IsTalking() then
             avatar.StopInteract()
-            LogInfo("EVENT_INTERACTION_STARTED, Stop...Start Interact becouse not talking")
+            --LogInfo("EVENT_INTERACTION_STARTED, Stop...Start Interact becouse not talking")
             avatar.StartInteract(idInteractor)
         end
     end
@@ -81,12 +81,12 @@ function On_EVENT_QUEST_RECEIVED(params)
         if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
             avatar.SkipQuest(qid)
         else
-            LogInfo("RegisterEventHandler EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+            --LogInfo("RegisterEventHandler EVENT_AVATAR_DESTINY_POINTS_CHANGED")
             common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
         end
         --Отладка
     else
-        LogInfo(fromWScore(cartographer.GetCurrentZoneInfo().zoneName), " : ", fromWScore(common.ExtractWStringFromValuedText(qInf.name)))
+        --LogInfo(fromWScore(cartographer.GetCurrentZoneInfo().zoneName), " : ", fromWScore(common.ExtractWStringFromValuedText(qInf.name)))
         --Отладка
     end
     if curInterl then
@@ -100,7 +100,7 @@ function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
         count = SkipAllQuest()
     until (count > avatar.GetDestinyPoints().total) or (count == 0)
     if count == 0 then
-        LogInfo("UnRegisterEventHandler EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+        --LogInfo("UnRegisterEventHandler EVENT_AVATAR_DESTINY_POINTS_CHANGED")
         common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     end
     if avatar.IsTalking() then
