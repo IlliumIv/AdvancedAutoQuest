@@ -1,3 +1,5 @@
+local IsRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
+
 -------------------------------------------------------------------------------
 --- Functions
 --------------------------------------------------------------------------------
@@ -15,7 +17,7 @@ function On_EVENT_INTERACTION_STARTED()
             else
                 local answer = avatar.GetInteractorNextCues()
                 if answer[0] and device.GetRelatedQuestObjectives(currentInterlocutor) then
-                    avatar.SelectInteractorCue(0)
+                    avatar.SelectInteractorCue(#answer)
                 end
             end
         end
@@ -30,7 +32,7 @@ function On_EVENT_INTERACTION_STARTED()
                 local currentAdditionalQuestsTable = {}
                 for _, id in pairs(unitQuestsTables.readyToGive) do
                     local qInf = avatar.GetQuestInfo(id)
-                    if (not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped then
+                    if ((not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped) and (avatar.GetQuestInfo(id).level > (unit.GetLevel(avatar.GetId()) - 4)) then
                         table.insert (currentQuestTable, #currentQuestTable + 1, id)
                     else
                         table.insert (currentAdditionalQuestsTable, #currentAdditionalQuestsTable + 1, id)
@@ -39,7 +41,7 @@ function On_EVENT_INTERACTION_STARTED()
                 if not IsEmpty(currentAdditionalQuestsTable) then
                     for _, id in pairs(currentAdditionalQuestsTable) do
                         local qName = fromWScore(common.ExtractWStringFromValuedText(avatar.GetQuestInfo(id).name))
-                        if IsInList(qName, QuestsLocales) then
+                        if IsInList(qName, QuestsLocales) and (avatar.GetQuestInfo(id).level > (unit.GetLevel(avatar.GetId()) - 4)) then
                             table.insert (currentQuestTable, #currentQuestTable + 1, id)
                         end
                     end
@@ -48,13 +50,9 @@ function On_EVENT_INTERACTION_STARTED()
                     for _, id in pairs(currentQuestTable) do
                         avatar.AcceptQuest(id)
                     end
+                    QuestsFire()
                 end
             end
-        end
-        if not avatar.IsTalking() then
-            avatar.StopInteract()
-            LogInfo("EVENT_INTERACTION_STARTED, Stop...Start Interact becouse not talking")
-            avatar.StartInteract(idInteractor)
         end
     end
 end
@@ -76,21 +74,34 @@ end
 function On_EVENT_QUEST_RECEIVED(params)
     local qid = params.questId
     local qInf = avatar.GetQuestInfo(qid)
-    local curInterl = avatar.GetInteractorInfo()
+    local curInter = avatar.GetInterlocutor()
     if qInf.canBeSkipped then
         if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
             avatar.SkipQuest(qid)
+            if avatar.IsTalking() then
+                avatar.StopInteract()
+                avatar.StartInteract(curInter)
+                return
+            end
         else
-            LogInfo("RegisterEventHandler EVENT_AVATAR_DESTINY_POINTS_CHANGED")
-            common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+            if not IsRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED then
+                IsRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
+                common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+            end
         end
         --Отладка
     else
         LogInfo(fromWScore(cartographer.GetCurrentZoneInfo().zoneName), " : ", fromWScore(common.ExtractWStringFromValuedText(qInf.name)))
         --Отладка
     end
-    if curInterl then
+    if avatar.IsTalking() then
         On_EVENT_INTERACTION_STARTED()
+        return
+    end
+    if curInter then
+        avatar.StopInteract()
+        LogInfo("EVENT_QUEST_RECEIVED, Stop...Start Interact")
+        avatar.StartInteract(curInter)
     end
 end
 
@@ -100,8 +111,8 @@ function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
         count = SkipAllQuest()
     until (count > avatar.GetDestinyPoints().total) or (count == 0)
     if count == 0 then
-        LogInfo("UnRegisterEventHandler EVENT_AVATAR_DESTINY_POINTS_CHANGED")
         common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+        IsRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
     end
     if avatar.IsTalking() then
         On_EVENT_INTERACTION_STARTED()
@@ -117,14 +128,34 @@ function SkipAllQuest()
     for _, id in pairs(qTable) do
         if avatar.GetQuestInfo(id).canBeSkipped then
             local currentNeedDestinyPoints = avatar.GetSkipQuestCost(id)
-            if currentNeedDestinyPoints <= avatar.GetDestinyPoints().total then
+            if currentNeedDestinyPoints <= avatar.GetDestinyPoints().total and avatar.GetQuestProgress(id).state == 0 then
                 avatar.SkipQuest(id)
             else
-                needDestinyPoints = needDestinyPoints + currentNeedDestinyPoints
+                if avatar.GetQuestProgress(id).state == 0 then
+                    needDestinyPoints = needDestinyPoints + currentNeedDestinyPoints
+                end
             end
         end
     end
     return needDestinyPoints
+end
+
+function QuestsFire()
+    local qTable = avatar.GetQuestBook()
+    if not qTable then
+        return
+    end
+    local FiredIt = {}
+    for _, id in pairs(qTable) do
+        if (avatar.GetQuestInfo(id).level < (unit.GetLevel(avatar.GetId()) - 4)) and avatar.GetQuestProgress(id).state ~= 1 then
+            table.insert (FiredIt, #FiredIt + 1, id)
+        end
+    end
+    if not IsEmpty(FiredIt) then
+        for _, id in pairs(FiredIt) do
+            avatar.DiscardQuest(id)
+        end
+    end
 end
 
 function IsInList (questName, listName)
@@ -142,6 +173,11 @@ function Init()
     common.RegisterEventHandler(On_EVENT_QUEST_RECEIVED, "EVENT_QUEST_RECEIVED")
     common.RegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
     common.UnRegisterEventHandler(Init, "EVENT_AVATAR_CREATED")
+    QuestsFire()
+    if SkipAllQuest() ~= 0 then
+        IsRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
+        common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+    end
 end
 
 --------------------------------------------------------------------------------
