@@ -5,6 +5,7 @@ Global ("sysNamesTable", {
     [ "Ice_1" ] = true,
     [ "Ice_2" ] = true,
     [ "Ice_3" ] = true,
+    [ "Ice_4" ] = true, -- "Зажигай!"
     [ "Snow_1" ] = true,
     [ "Snow_2" ] = true,
     [ "Snow_3" ] = true,
@@ -19,12 +20,18 @@ Global ("sysNamesTable", {
     [ "Air_3" ] = true,
     [ "Air_4" ] = true,
     [ "Stone_1" ] = true,
+    [ "Stone_2" ] = true, -- "Каменное сердце"
+    [ "Stone_3" ] = true, -- "Пиратская канонада"
     [ "Water_1" ] = true,
     [ "Water_2" ] = true,
     [ "Water_3" ] = true,
+    [ "Water_4" ] = true, -- "Парилка"
     [ "IM_HaloRevard" ] = true,
     [ "MegaGoal_L_IslandDaily_07" ] = true,
     [ "GuildQuest_1_1" ] = true,
     [ "GuildQuest_3_1" ] = true,
+    [ "GuildQuest_4_1" ] = true,
+    [ "GuildQuest_5_1" ] = true,
     [ "GuildQuest_2_17" ] = true,
+    [ "PvP_L1" ] = true, -- "Окопная война"
 })

@@ -93,7 +93,9 @@ function On_EVENT_QUEST_RECEIVED(params)
         end
         --Отладка
     else
-        LogInfo(fromWScore(common.ExtractWStringFromValuedText(qInf.name)), " : ", qInf.sysName)
+        if not ThisQuestIsInLists(qInf) then
+            LogInfo(fromWScore(common.ExtractWStringFromValuedText(qInf.name)), " : ", qInf.sysName)
+        end
         --Отладка
     end
     if avatar.IsTalking() then
@@ -164,16 +166,14 @@ end
 
 function ThisQuestIsInLists(questInfo)
     local questInfoName = fromWScore(common.ExtractWStringFromValuedText(questInfo.name))
-    --Отладка
-    if commonQuestsTable[localization][questInfoName] and questInfo.sysName then
-        LogInfo("Finded ", questInfo.sysName, " for ", questInfoName)
-    end
-    --Отладка
-    if commonQuestsTable[localization][questInfoName] then
-        return commonQuestsTable[localization][questInfoName]
-    end
     if commonQuestsTable["sysNames"][questInfo.sysName] then
         return commonQuestsTable["sysNames"][questInfo.sysName]
+    end
+    if commonQuestsTable[localization][questInfoName] then
+        --Отладка
+        LogInfo("Finded ", questInfo.sysName, " for ", questInfoName)
+        --Отладка
+        return commonQuestsTable[localization][questInfoName]
     end
     return false
 end
