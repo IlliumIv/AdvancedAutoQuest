@@ -21,14 +21,14 @@ local function GetGameLocalization()
 end
 localization = GetGameLocalization()
 
-function GTL( strTextName )
-    return Locales[ localization ][ strTextName ] or Locales[ "eng_eu" ][ strTextName ] or strTextName
+function GTL(strTextName)
+    return locales[ localization ][ strTextName ] or locales[ "eng_eu" ][ strTextName ] or strTextName
 end
 
 -- +---------------------------------------+
 -- |Shortcuts for WString/String conversion|
 -- +---------------------------------------+
-function toWScore( arg )
+function toWScore(arg)
     return userMods.ToWString(arg)
 end
 

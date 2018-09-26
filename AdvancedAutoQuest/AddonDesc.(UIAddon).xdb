@@ -3,8 +3,8 @@
     <Name>AutoQuest</Name>
     <AutoStart>true</AutoStart>
     <ScriptFileRefs>
-        <Item href="Scripts/Locales.txt"/>
-        <Item href="Scripts/QuestsLocales.txt"/>
+        <Item href="Locales.txt"/>
+        <Item href="Scripts/SysTables.lua"/>
         <Item href="Scripts/Core.lua"/>
         <Item href="Scripts/LibDnD.lua"/>
         <Item href="Scripts/ScriptAdvancedToString.lua"/>
