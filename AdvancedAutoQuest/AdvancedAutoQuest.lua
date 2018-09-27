@@ -3,6 +3,11 @@ local commonQuestsTable = {["sysNames"] = sysNamesTable, }
 for key, val in pairs(localizedQuestsName) do
     commonQuestsTable[key] = val
 end
+local workedQuests = {
+    [ "KingdomOfElements" ] = true,
+    [ "GuildQuest" ] = true,
+    [ "Repeatable" ] = true,
+}
 -------------------------------------------------------------------------------
 --- Functions
 --------------------------------------------------------------------------------
@@ -153,7 +158,8 @@ function DiscardQuests()
     end
     local FiredIt = {}
     for _, id in pairs(qTable) do
-        if (avatar.GetQuestInfo(id).level < (unit.GetLevel(avatar.GetId()) - 3)) and avatar.GetQuestProgress(id).state ~= 1 then
+        local qinform = avatar.GetQuestInfo(id)
+        if (qinform.level < (unit.GetLevel(avatar.GetId()) - 3)) and avatar.GetQuestProgress(id).state ~= 1 and not workedQuests[commonQuestsTable["sysNames"][qinform.sysName][2]] then
             table.insert (FiredIt, #FiredIt + 1, id)
         end
     end
@@ -166,8 +172,10 @@ end
 
 function ThisQuestIsInLists(questInfo)
     local questInfoName = fromWScore(common.ExtractWStringFromValuedText(questInfo.name))
-    if commonQuestsTable["sysNames"][questInfo.sysName] then
-        return commonQuestsTable["sysNames"][questInfo.sysName]
+    if commonQuestsTable["sysNames"][questInfo.sysName][1] then
+        if workedQuests[commonQuestsTable["sysNames"][questInfo.sysName][2]] then
+            return commonQuestsTable["sysNames"][questInfo.sysName][1]
+        end
     end
     if commonQuestsTable[localization][questInfoName] then
         --Отладка
