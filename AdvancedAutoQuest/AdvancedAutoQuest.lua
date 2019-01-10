@@ -17,19 +17,37 @@ function On_EVENT_INTERACTION_STARTED()
         local idInteractor = avatar.GetInteractorInfo().interactorId
         if not npcExceptions[localization][fromWScore(object.GetName(idInteractor))] then
             Talk(currentInterlocutor, idInteractor)
-        else
-            local unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
-            local currentSpecialQuestId = false
-            for _, id in pairs(unitQuestsTables) do
-                local qInfo = avatar.GetQuestInfo(id)
-                if ThisQuestIsSpecial(qInfo) then
-                    currentSpecialQuestId = id
-                    break
-                end
-            end
-            if not currentSpecialQuestId then
-                Talk(currentInterlocutor, idInteractor)
-            end
+            --        else
+            --            local currentSpecialQuestsTable = {}
+            --            local currentQuestTable = avatar.GetQuestBook()
+            --            for _, id in pairs(currentQuestTable) do
+            --                local qInfo = avatar.GetQuestInfo(id)
+            --                if ThisQuestIsSpecial(qInfo) then
+            --                    table.insert (currentSpecialQuestsTable, #currentSpecialQuestsTable + 1, id)
+            --                end
+            --            end
+            --            if currentSpecialQuestsTable[0] then
+            --                Talk(currentInterlocutor, idInteractor)
+            --            else
+            --                for _, id in pairs(currentSpecialQuestsTable) do
+            --                    if (specialQuestsTable[questInfo.sysName][2] == fromWScore(object.GetName(idInteractor))) then
+            --                        if specialQuestsTable[questInfo.sysName][1] == "Talk" then
+            --                            if object.IsUnit(idInteractor) then
+            --                                local answers = avatar.GetInteractorNextCues()
+            --                                if answers[0] and unit.GetRelatedQuestObjectives(currentInterlocutor) then
+            --                                    avatar.SelectInteractorCue(0)
+            --                                end
+            --                            else
+            --                                local answers = avatar.GetInteractorNextCues()
+            --                                if answers[0] and device.GetRelatedQuestObjectives(currentInterlocutor) then
+            --                                    avatar.SelectInteractorCue(#answers)
+            --                                end
+            --                            end
+            --                        end
+            --                    end
+            --                end
+            ---                local qInfo = avatar.GetQuestInfo(currentSpecialQuestsTable)
+            --            end
         end
         local unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
         if not IsEmpty(unitQuestsTables) then
@@ -77,7 +95,7 @@ function ReturnThisQuests(uQT)
                 --if itemLib.GetItemInfo(value).isWeapon then
                 --    avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
                 --else
-                    avatar.ReturnQuest(id, value)
+                avatar.ReturnQuest(id, value)
                 --end
                 break
             end
@@ -86,7 +104,7 @@ function ReturnThisQuests(uQT)
 end
 
 function ChooseYourWeapon (weaponTable)
-    local dualwieldWeapons 
+    local dualwieldWeapons
     local weaponTable = {
         DRESS_SLOT_TWOHANDED
     }
@@ -94,8 +112,8 @@ function ChooseYourWeapon (weaponTable)
     for key, value in pairs(weaponTable) do
         if itemLib.GetItemInfo(value).dressSlot == DRESS_SLOT_TWOHANDED then
             table.insert (twohandedWeapons, #twohandedWeapons + 1, value)
-            else
-                if itemLib.GetItemInfo(value).dressSlot == DRESS_SLOT_DUALWIELD then
+        else
+            if itemLib.GetItemInfo(value).dressSlot == DRESS_SLOT_DUALWIELD then
             end
         end
     end
@@ -104,6 +122,11 @@ end
 function On_EVENT_QUEST_RECEIVED(params)
     local qid = params.questId
     local qInf = avatar.GetQuestInfo(qid)
+    --Отладка
+    if not ThisQuestIsInLists(qInf) then
+        LogInfo(fromWScore(common.ExtractWStringFromValuedText(qInf.name)), " : ", qInf.sysName, " : ", qInf.plotLine, " : ", qInf.canBeSkipped, " : ", qInf.isInSecretSequence)
+    end
+    --Отладка
     local curInter = avatar.GetInterlocutor()
     if qInf.canBeSkipped then
         if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
@@ -119,12 +142,6 @@ function On_EVENT_QUEST_RECEIVED(params)
                 common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
             end
         end
-        --Отладка
-    else
-        if not ThisQuestIsInLists(qInf) then
-            LogInfo(fromWScore(common.ExtractWStringFromValuedText(qInf.name)), " : ", qInf.sysName)
-        end
-        --Отладка
     end
     if avatar.IsTalking() then
         On_EVENT_INTERACTION_STARTED()
@@ -182,8 +199,10 @@ function DiscardQuests()
     local FiredIt = {}
     for _, id in pairs(qTable) do
         local qinform = avatar.GetQuestInfo(id)
-        if (qinform.level < (unit.GetLevel(avatar.GetId()) - 3)) and avatar.GetQuestProgress(id).state ~= 1 and not workedQuests[commonQuestsTable["sysNames"][qinform.sysName][2]] then
-            table.insert (FiredIt, #FiredIt + 1, id)
+        if workedQuests[commonQuestsTable["sysNames"][qinform.sysName]] then
+            if (qinform.level < (unit.GetLevel(avatar.GetId()) - 3)) and avatar.GetQuestProgress(id).state ~= 1 and not workedQuests[commonQuestsTable["sysNames"][qinform.sysName][2]] then
+                table.insert (FiredIt, #FiredIt + 1, id)
+            end
         end
     end
     if not IsEmpty(FiredIt) then
@@ -195,9 +214,11 @@ end
 
 function ThisQuestIsInLists(questInfo)
     local questInfoName = fromWScore(common.ExtractWStringFromValuedText(questInfo.name))
-    if commonQuestsTable["sysNames"][questInfo.sysName][1] then
-        if workedQuests[commonQuestsTable["sysNames"][questInfo.sysName][2]] then
-            return true
+    if commonQuestsTable["sysNames"][questInfo.sysName] then
+        if commonQuestsTable["sysNames"][questInfo.sysName][1] then
+            if workedQuests[commonQuestsTable["sysNames"][questInfo.sysName][2]] then
+                return true
+            end
         end
     end
     if commonQuestsTable[localization][questInfoName] then
@@ -210,8 +231,10 @@ function ThisQuestIsInLists(questInfo)
 end
 
 function ThisQuestIsSpecial(questInfo)
-    local questInfoName = fromWScore(common.ExtractWStringFromValuedText(questInfo.name))
-    return commonQuestsTable["sysNames"][questInfo.sysName][3]
+    if specialQuestsTable[questInfo.sysName] then
+        return true
+    end
+    return false
 end
 
 function Talk (cIlr, iId)
