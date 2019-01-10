@@ -16,16 +16,19 @@ function On_EVENT_INTERACTION_STARTED()
     if currentInterlocutor then
         local idInteractor = avatar.GetInteractorInfo().interactorId
         if not npcExceptions[localization][fromWScore(object.GetName(idInteractor))] then
-            if object.IsUnit(idInteractor) then
-                local answer = avatar.GetInteractorNextCues()
-                if answer[0] and unit.GetRelatedQuestObjectives(currentInterlocutor) then
-                    avatar.SelectInteractorCue(0)
+            Talk(currentInterlocutor, idInteractor)
+        else
+            local unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
+            local currentSpecialQuestId = false
+            for _, id in pairs(unitQuestsTables) do
+                local qInfo = avatar.GetQuestInfo(id)
+                if ThisQuestIsSpecial(qInfo) then
+                    currentSpecialQuestId = id
+                    break
                 end
-            else
-                local answer = avatar.GetInteractorNextCues()
-                if answer[0] and device.GetRelatedQuestObjectives(currentInterlocutor) then
-                    avatar.SelectInteractorCue(#answer)
-                end
+            end
+            if not currentSpecialQuestId then
+                Talk(currentInterlocutor, idInteractor)
             end
         end
         local unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
@@ -71,8 +74,28 @@ function ReturnThisQuests(uQT)
             avatar.ReturnQuest(id, nil)
         else
             for key, value in pairs(itemsQuestsReward) do
-                avatar.ReturnQuest(id, value)
+                --if itemLib.GetItemInfo(value).isWeapon then
+                --    avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
+                --else
+                    avatar.ReturnQuest(id, value)
+                --end
                 break
+            end
+        end
+    end
+end
+
+function ChooseYourWeapon (weaponTable)
+    local dualwieldWeapons 
+    local weaponTable = {
+        DRESS_SLOT_TWOHANDED
+    }
+    local twohandedWeapons
+    for key, value in pairs(weaponTable) do
+        if itemLib.GetItemInfo(value).dressSlot == DRESS_SLOT_TWOHANDED then
+            table.insert (twohandedWeapons, #twohandedWeapons + 1, value)
+            else
+                if itemLib.GetItemInfo(value).dressSlot == DRESS_SLOT_DUALWIELD then
             end
         end
     end
@@ -174,7 +197,7 @@ function ThisQuestIsInLists(questInfo)
     local questInfoName = fromWScore(common.ExtractWStringFromValuedText(questInfo.name))
     if commonQuestsTable["sysNames"][questInfo.sysName][1] then
         if workedQuests[commonQuestsTable["sysNames"][questInfo.sysName][2]] then
-            return commonQuestsTable["sysNames"][questInfo.sysName][1]
+            return true
         end
     end
     if commonQuestsTable[localization][questInfoName] then
@@ -185,6 +208,26 @@ function ThisQuestIsInLists(questInfo)
     end
     return false
 end
+
+function ThisQuestIsSpecial(questInfo)
+    local questInfoName = fromWScore(common.ExtractWStringFromValuedText(questInfo.name))
+    return commonQuestsTable["sysNames"][questInfo.sysName][3]
+end
+
+function Talk (cIlr, iId)
+    if object.IsUnit(iId) then
+        local answer = avatar.GetInteractorNextCues()
+        if answer[0] and unit.GetRelatedQuestObjectives(cIlr) then
+            avatar.SelectInteractorCue(0)
+        end
+    else
+        local answer = avatar.GetInteractorNextCues()
+        if answer[0] and device.GetRelatedQuestObjectives(cIlr) then
+            avatar.SelectInteractorCue(#answer)
+        end
+    end
+end
+
 --------------------------------------------------------------------------------
 --- INITIALIZATION
 --------------------------------------------------------------------------------

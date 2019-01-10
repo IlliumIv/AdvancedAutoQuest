@@ -167,6 +167,6 @@ Global( "npcExceptions", {
 	},
 ----------------------Русская локализация
 	[ "rus" ] = {
-		[ "Kliv Pisarev" ]      = true,
+		[ "Klim Pisarev" ]      = true,
 	},
 })
