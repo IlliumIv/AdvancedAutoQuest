@@ -88,3 +88,19 @@ Global ("specialQuestsTable", {
     --  [ "sysName" ] = {"SpecialType","...",...}
     [ "Quest_E1_add_20" ] = {"Talk", "Руины джунского портала", "Отправиться к джунским руинам"},
 })
+
+Global( "specialQuestsTable", {
+----------------------Английская локализация
+	[ "eng_eu" ] = {
+		[ "Remember" ]		 						  = "Remember",
+	},
+----------------------Русская локализация
+	[ "rus" ] = {
+--      [ "sysName" ] = {"SpecialType", "NPC/Device.name", SortedArray = {
+--          [Cue[1].name], [Cue[2].name],
+--      }},
+		[ "Quest_E1_add_20" ] = {"Talk", "Руины джунского портала", objectivesCues = {
+            "Отправиться к джунским руинам",
+        }},
+	},
+})

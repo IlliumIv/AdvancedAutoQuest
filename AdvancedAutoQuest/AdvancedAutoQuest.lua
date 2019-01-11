@@ -13,69 +13,86 @@ local workedQuests = {
 --------------------------------------------------------------------------------
 function On_EVENT_INTERACTION_STARTED()
     local currentInterlocutor = avatar.GetInterlocutor()
+    -- если Интерлокатор существует, то
     if currentInterlocutor then
         local idInteractor = avatar.GetInteractorInfo().interactorId
+        -- если NPC/Device в таргете НЕ из списка исключений, то
         if not npcExceptions[localization][fromWScore(object.GetName(idInteractor))] then
             Talk(currentInterlocutor, idInteractor)
-            --        else
-            --            local currentSpecialQuestsTable = {}
-            --            local currentQuestTable = avatar.GetQuestBook()
-            --            for _, id in pairs(currentQuestTable) do
-            --                local qInfo = avatar.GetQuestInfo(id)
-            --                if ThisQuestIsSpecial(qInfo) then
-            --                    table.insert (currentSpecialQuestsTable, #currentSpecialQuestsTable + 1, id)
-            --                end
-            --            end
-            --            if currentSpecialQuestsTable[0] then
-            --                Talk(currentInterlocutor, idInteractor)
-            --            else
-            --                for _, id in pairs(currentSpecialQuestsTable) do
-            --                    if (specialQuestsTable[questInfo.sysName][2] == fromWScore(object.GetName(idInteractor))) then
-            --                        if specialQuestsTable[questInfo.sysName][1] == "Talk" then
-            --                            if object.IsUnit(idInteractor) then
-            --                                local answers = avatar.GetInteractorNextCues()
-            --                                if answers[0] and unit.GetRelatedQuestObjectives(currentInterlocutor) then
-            --                                    avatar.SelectInteractorCue(0)
-            --                                end
-            --                            else
-            --                                local answers = avatar.GetInteractorNextCues()
-            --                                if answers[0] and device.GetRelatedQuestObjectives(currentInterlocutor) then
-            --                                    avatar.SelectInteractorCue(#answers)
-            --                                end
-            --                            end
-            --                        end
-            --                    end
-            --                end
-            ---                local qInfo = avatar.GetQuestInfo(currentSpecialQuestsTable)
-            --            end
+        else
+            -- объявим таблицу текущих специальных квестов (текущие - связанные с NPC/Device в таргете)
+            local currentSpecialQuestsTable = {}
+            local avatarQuestBook = avatar.GetQuestBook()
+            -- обходим таблицу квестов из квест-бука
+            for _, id in pairs(avatarQuestBook) do
+                -- если квест в списке специальных, то
+                if ThisQuestIsSpecial(id) then
+                    -- вносим id квеста в таблицу текущих специальных квестов
+                    table.insert (currentSpecialQuestsTable, #currentSpecialQuestsTable + 1, id)
+                end
+            end
+            -- если таблица текущих специальных квестов пуста, то
+            if IsEmpty(currentSpecialQuestsTable) then
+                Talk(currentInterlocutor, idInteractor)
+            else
+                -- обходим таблицу специальных квестов из квест-бука
+                for _, id in pairs(currentSpecialQuestsTable) do
+                    -- если тип специального квеста - Talk, то
+                    if specialQuestsTable[localization][questInfo.sysName][1] == "Talk" then
+                        -- если NPC/Device в таргете - нужный для квеста с id, то
+                        if (specialQuestsTable[localization][questInfo.sysName][2] == fromWScore(object.GetName(idInteractor))) then
+                            Talk(currentInterlocutor, idInteractor, specialQuestsTable[localization][questInfo.sysName][objectivesCues])
+                        end
+                    end
+                end
+            end
         end
+        -- объявим таблицу текущих квестов у NPC/Device в таргете
         local unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
+        -- если таблица квестов у NPC/Device в таргете НЕ пуста, то
         if not IsEmpty(unitQuestsTables) then
+            -- если таблица квестов у NPC/Device в таргете, которые он может принять, НЕ пуста, то
             if not IsEmpty(unitQuestsTables.readyToAccept) then
+                -- сдаём квесты, которые можно сдать
                 ReturnThisQuests(unitQuestsTables)
+                -- обновляем таблиуц текущих квестов - вдруг появились новые
                 unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
             end
+            -- если таблица квестов у NPC/Device в таргете, которые он может выдать, НЕ пуста, то
             if not IsEmpty(unitQuestsTables.readyToGive) then
+                -- объявим таблицу текущих квестов (текущие - те, которые мы сейчас будем брать)
                 local currentQuestTable = {}
+                -- объявим таблицу дополнительных текущих квестов (все, которые НЕ попали в таблицу текущих квестов)
                 local currentAdditionalQuestsTable = {}
+                -- обходим таблицу квестов у NPC/Device в таргете, которые он может выдать
                 for _, id in pairs(unitQuestsTables.readyToGive) do
                     local qInf = avatar.GetQuestInfo(id)
+                    -- если ((НЕ необязательные и НЕ повторяемые) или можно сдать за очки судьбы) и уровень квеста выше, чем уровень персонажа - 4, то
                     if ((not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped) and (qInf.level > (unit.GetLevel(avatar.GetId()) - 4)) then
+                        -- вносим id квеста в таблицу текущих квестов
                         table.insert (currentQuestTable, #currentQuestTable + 1, id)
                     else
+                        -- вносим id квеста в таблицу дополнительных текущих квестов
                         table.insert (currentAdditionalQuestsTable, #currentAdditionalQuestsTable + 1, id)
                     end
                 end
+                -- если таблица дополнительных текущих квестов НЕ пуста, то
                 if not IsEmpty(currentAdditionalQuestsTable) then
+                    -- обходим таблицу дополнительных текущих квестов
                     for _, id in pairs(currentAdditionalQuestsTable) do
                         local qInfo = avatar.GetQuestInfo(id)
+                        -- если квест с id в списке квестов и уровень квеста выше, чем уровень персонажа - 4, то
                         if ThisQuestIsInLists(qInfo) and (qInfo.level > (unit.GetLevel(avatar.GetId()) - 4)) then
+                            -- вносим id квеста в таблицу текущих квестов
                             table.insert (currentQuestTable, #currentQuestTable + 1, id)
                         end
                     end
                 end
+                -- если таблица текущих квестов НЕ пуста
                 if not IsEmpty(currentQuestTable) then
+                    -- сожгём неподходящие квесты, чтобы освободить квест-бук
                     DiscardQuests()
+                    -- обходим таблицу текущих квестов
                     for _, id in pairs(currentQuestTable) do
                         avatar.AcceptQuest(id)
                     end
@@ -230,23 +247,42 @@ function ThisQuestIsInLists(questInfo)
     return false
 end
 
-function ThisQuestIsSpecial(questInfo)
-    if specialQuestsTable[questInfo.sysName] then
+function ThisQuestIsSpecial(questId)
+    if specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName] then
         return true
     end
     return false
 end
 
-function Talk (cIlr, iId)
+function Talk(cIlr, iId, objectivesCuesTable)
+    local answers = avatar.GetInteractorNextCues()
     if object.IsUnit(iId) then
-        local answer = avatar.GetInteractorNextCues()
-        if answer[0] and unit.GetRelatedQuestObjectives(cIlr) then
-            avatar.SelectInteractorCue(0)
+        if answers[0] and unit.GetRelatedQuestObjectives(cIlr) then
+            if not IsEmpty(objectivesCuesTable) then
+                for objectivesCuesTable_key, cueName in pairs(objectivesCuesTable) do
+                    for answers_key, cueIndex in pairs(answers) do
+                        if fromWScore(answers[cueIndex].name) == objectivesCuesTable[objectivesCuesTable_key] then
+                            avatar.SelectInteractorCue(cueIndex)
+                        end
+                    end
+                end
+            else
+                avatar.SelectInteractorCue(0)
+            end
         end
     else
-        local answer = avatar.GetInteractorNextCues()
-        if answer[0] and device.GetRelatedQuestObjectives(cIlr) then
-            avatar.SelectInteractorCue(#answer)
+        if answers[0] and device.GetRelatedQuestObjectives(cIlr) then
+            if not IsEmpty(objectivesCuesTable) then
+                for key, cueName in pairs(objectivesCuesTable) do
+                    for answers_key, cueIndex in pairs(answers) do
+                        if fromWScore(answers[cueIndex].name) == objectivesCuesTable[key] then
+                            avatar.SelectInteractorCue(cueIndex)
+                        end
+                    end
+                end
+            else
+                avatar.SelectInteractorCue(#answers)
+            end
         end
     end
 end

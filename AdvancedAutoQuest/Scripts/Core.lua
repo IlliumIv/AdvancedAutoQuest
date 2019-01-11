@@ -32,7 +32,7 @@ function toWScore(arg)
     return userMods.ToWString(arg)
 end
 
-function fromWScore( arg )
+function fromWScore(arg)
     return userMods.FromWString(arg)
 end
 
