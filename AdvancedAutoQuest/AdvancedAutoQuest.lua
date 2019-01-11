@@ -8,6 +8,19 @@ local workedQuests = {
     [ "GuildQuest" ] = true,
     [ "Repeatable" ] = true,
 }
+local weaponPriority = {
+    [ "paladin" ] = "DRESS_SLOT_TWOHANDED",
+    [ "warrior" ] = "DRESS_SLOT_TWOHANDED",
+    [ "priest" ] = "DRESS_SLOT_TWOHANDED",
+    [ "engineer" ] = "DRESS_SLOT_DUALWIELD",
+    [ "stalker" ] = "DRESS_SLOT_DUALWIELD",
+    [ "bard" ] = "DRESS_SLOT_DUALWIELD",
+    [ "psionic" ] = "DRESS_SLOT_DUALWIELD",
+    [ "druid" ] = "DRESS_SLOT_ONEHANDED",
+    [ "mage" ] = "DRESS_SLOT_ONEHANDED",
+    [ "necromancer" ] = "DRESS_SLOT_ONEHANDED",
+    [ "demonolog" ] = "DRESS_SLOT_ONEHANDED",
+}
 -------------------------------------------------------------------------------
 --- Functions
 --------------------------------------------------------------------------------
@@ -37,11 +50,13 @@ function On_EVENT_INTERACTION_STARTED()
             else
                 -- обходим таблицу специальных квестов из квест-бука
                 for _, id in pairs(currentSpecialQuestsTable) do
+                    -- объявим переменную, чтобы не вычислять три раза
+                    local questName = specialQuestsTable[localization][avatar.GetQuestInfo(id).sysName]
                     -- если тип специального квеста - Talk, то
-                    if specialQuestsTable[localization][questInfo.sysName][1] == "Talk" then
+                    if questName[1] == "Talk" then
                         -- если NPC/Device в таргете - нужный для квеста с id, то
-                        if (specialQuestsTable[localization][questInfo.sysName][2] == fromWScore(object.GetName(idInteractor))) then
-                            Talk(currentInterlocutor, idInteractor, specialQuestsTable[localization][questInfo.sysName][objectivesCues])
+                        if (questName[2] == fromWScore(object.GetName(idInteractor))) then
+                            Talk(currentInterlocutor, idInteractor, questName[objectivesCues])
                         end
                     end
                 end
@@ -54,8 +69,8 @@ function On_EVENT_INTERACTION_STARTED()
             -- если таблица квестов у NPC/Device в таргете, которые он может принять, НЕ пуста, то
             if not IsEmpty(unitQuestsTables.readyToAccept) then
                 -- сдаём квесты, которые можно сдать
-                ReturnThisQuests(unitQuestsTables)
-                -- обновляем таблиуц текущих квестов - вдруг появились новые
+                ReturnThisQuests(unitQuestsTables.readyToAccept)
+                -- обновляем таблицу текущих квестов - вдруг появились новые
                 unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
             end
             -- если таблица квестов у NPC/Device в таргете, которые он может выдать, НЕ пуста, то
@@ -102,38 +117,44 @@ function On_EVENT_INTERACTION_STARTED()
     end
 end
 
-function ReturnThisQuests(uQT)
-    for i, id in pairs(uQT.readyToAccept) do
+-- Сдать эти квесты (Таблица готовых к завершению квестов object.GetInteractorQuests(avatar.GetInterlocutor()).readyToAccept)
+function ReturnThisQuests(uQTreadyToAccept)
+    -- обходим таблицу квестов у NPC/Device в таргете, которые он может принять
+    for i, id in pairs(uQTreadyToAccept) do
+        -- объявим таблицу наградных предметов
         local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
+        -- если таблица наградных предметов пуста, то
         if IsEmpty(itemsQuestsReward) then
             avatar.ReturnQuest(id, nil)
         else
+            -- Переписать кусок кода. Он работает, но является *** и потенциально не всегда может выбрать корректную награду.
+            -- смотрим на первый в списке предмет
             for key, value in pairs(itemsQuestsReward) do
-                --if itemLib.GetItemInfo(value).isWeapon then
-                --    avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
-                --else
-                avatar.ReturnQuest(id, value)
-                --end
+                -- если этот предмет - оружие, то
+                if itemLib.GetItemInfo(value).isWeapon then
+                    avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
+                else
+                    avatar.ReturnQuest(id, value)
+                end
+                -- выходим из цикла, потому что остальные предметы мы проверять не будем и уже сдали квест, выбрав первый попавшийся предмет
                 break
             end
         end
     end
 end
 
-function ChooseYourWeapon (weaponTable)
-    local dualwieldWeapons
-    local weaponTable = {
-        DRESS_SLOT_TWOHANDED
-    }
-    local twohandedWeapons
+-- Выбрать оружие (avatar.GetQuestReward(id).alternativeItems)
+function ChooseYourWeapon(weaponTable)
+    -- обходим таблицу доступных к выбору оружий
     for key, value in pairs(weaponTable) do
-        if itemLib.GetItemInfo(value).dressSlot == DRESS_SLOT_TWOHANDED then
-            table.insert (twohandedWeapons, #twohandedWeapons + 1, value)
-        else
-            if itemLib.GetItemInfo(value).dressSlot == DRESS_SLOT_DUALWIELD then
-            end
+        -- если слот предмета совпадает с приоритетным для класса, то
+        if itemLib.GetItemInfo(value).dressSlot == weaponPriority[tostring(avatar.GetClass())] then
+            -- вернуть id предмета
+            return value
         end
     end
+    -- вернуть id первого предмета из списка
+    return weaponTable[0]
 end
 
 function On_EVENT_QUEST_RECEIVED(params)
@@ -254,6 +275,7 @@ function ThisQuestIsSpecial(questId)
     return false
 end
 
+-- Сказать (avatar.GetInterlocutor(), avatar.GetInteractorInfo().interactorId, specialQuestsTable[localization]["sysName"][objectivesCues])
 function Talk(cIlr, iId, objectivesCuesTable)
     local answers = avatar.GetInteractorNextCues()
     if object.IsUnit(iId) then
