@@ -96,8 +96,8 @@ function On_EVENT_INTERACTION_STARTED()
                     -- обходим таблицу дополнительных текущих квестов
                     for _, id in pairs(currentAdditionalQuestsTable) do
                         local qInfo = avatar.GetQuestInfo(id)
-                        -- если квест с id в списке квестов и уровень квеста выше, чем уровень персонажа - 4, то
-                        if ThisQuestIsInLists(qInfo) and (qInfo.level > (unit.GetLevel(avatar.GetId()) - 4)) then
+                        -- если квест с id в списке квестов и уровень квеста выше, чем уровень персонажа - 4, либо проверка на тип квеста, то
+                        if (ThisQuestIsInLists(qInfo) and qInfo.level > (unit.GetLevel(avatar.GetId()) - 4)) or workedQuests[commonQuestsTable["sysNames"][qInfo.sysName][2]] then
                             -- вносим id квеста в таблицу текущих квестов
                             table.insert (currentQuestTable, #currentQuestTable + 1, id)
                         end
@@ -269,6 +269,7 @@ function ThisQuestIsInLists(questInfo)
 end
 
 function ThisQuestIsSpecial(questId)
+    LogInfo(specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName])
     if specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName] then
         return true
     end
@@ -277,33 +278,34 @@ end
 
 -- Сказать (avatar.GetInterlocutor(), avatar.GetInteractorInfo().interactorId, specialQuestsTable[localization]["sysName"][objectivesCues])
 function Talk(cIlr, iId, objectivesCuesTable)
+    -- объявим массив ответов у NPC/Device в таргете
     local answers = avatar.GetInteractorNextCues()
-    if object.IsUnit(iId) then
-        if answers[0] and unit.GetRelatedQuestObjectives(cIlr) then
-            if not IsEmpty(objectivesCuesTable) then
-                for objectivesCuesTable_key, cueName in pairs(objectivesCuesTable) do
-                    for answers_key, cueIndex in pairs(answers) do
-                        if fromWScore(answers[cueIndex].name) == objectivesCuesTable[objectivesCuesTable_key] then
-                            avatar.SelectInteractorCue(cueIndex)
-                        end
+    -- если существует хотя бы один, то
+    if answers[0] then
+        -- если передан массив специальных ответов, то
+        if not IsEmpty(objectivesCuesTable) then
+            -- обходим массив специальных ответов
+            for objectivesCuesTable_key, cueName in pairs(objectivesCuesTable) do
+                -- обходим массив ответов у NPC/Device в таргете
+                for cueIndex, CueTable in pairs(answers) do
+                    -- если название ответа совпадает со специальным ответом по индексу, то
+                    if fromWScore(answers[cueIndex].name) == objectivesCuesTable[objectivesCuesTable_key] then
+                        avatar.SelectInteractorCue(cueIndex)
                     end
                 end
-            else
-                avatar.SelectInteractorCue(0)
             end
-        end
-    else
-        if answers[0] and device.GetRelatedQuestObjectives(cIlr) then
-            if not IsEmpty(objectivesCuesTable) then
-                for key, cueName in pairs(objectivesCuesTable) do
-                    for answers_key, cueIndex in pairs(answers) do
-                        if fromWScore(answers[cueIndex].name) == objectivesCuesTable[key] then
-                            avatar.SelectInteractorCue(cueIndex)
-                        end
-                    end
+        else
+            -- если объект - NPC, то
+            if object.IsUnit(iId) then
+                -- если NPC связан любым квестом в квест-буке, то
+                if unit.GetRelatedQuestObjectives(cIlr) then
+                    avatar.SelectInteractorCue(0)
                 end
             else
-                avatar.SelectInteractorCue(#answers)
+                -- если Device связан любым квестом в квест-буке, то
+                if device.GetRelatedQuestObjectives(cIlr) then
+                    avatar.SelectInteractorCue(#answers)
+                end
             end
         end
     end

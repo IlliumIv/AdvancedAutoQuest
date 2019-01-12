@@ -16,6 +16,7 @@ Global ("sysNamesTable", {
     [ "Snow_7" ] = {true, "KingdomOfElements", false},
     [ "Snow_8" ] = {true, "KingdomOfElements", false},
     [ "Snow_9" ] = {true, "KingdomOfElements", false},
+    [ "Snow_12" ] = {true, "KingdomOfElements", false}, -- "Охота с огоньком"
     [ "Air_1" ] = {true, "KingdomOfElements", false},
     [ "Air_2" ] = {true, "KingdomOfElements", false},
     [ "Air_3" ] = {true, "KingdomOfElements", false},
@@ -29,6 +30,9 @@ Global ("sysNamesTable", {
     [ "Water_4" ] = {true, "KingdomOfElements", false}, -- "Парилка"
     [ "IM_HaloRevard" ] = {true, "Repeatable"},
     [ "MegaGoal_L_IslandDaily_07" ] = {true, "Repeatable"},
+    [ "QuestEvent03" ] = {"true", "Repeatable", false}, -- "Пещера Тка-Рика", "Дорога испытаний"
+    [ "QuestEventDaily" ] = {"true", "Repeatable", false}, -- "Пещера Тка-Рика", "Вызов Вероники"
+    [ "MegaGoal_E_IslandDaily_07" ] = {"true", "Repeatable", false}, -- "Путь Творца", "Путь Творца: Пещера Тка-Рика"
     [ "GuildQuest_1_1" ] = {true, "GuildQuest"},
     [ "GuildQuest_3_1" ] = {true, "GuildQuest"},
     [ "GuildQuest_4_1" ] = {true, "GuildQuest"},
@@ -73,34 +77,16 @@ Global ("sysNamesTable", {
     --    [ "Quest_1_32" ]      = {"E1_HadLine","Амбиции Хадагана"}, -- "Испытание ареной" - после убийства падает итем, который даёт квест
     --    [ "Quest_E1_add_14" ]      = {"E1_HadLine"}, -- "Ультиматум Булыги" - просто добежать
     --    [ "Quest_1_33" ]      = {"E1_HadLine","Амбиции Хадагана"}, -- "Загадочный амулет" - просто добежать
-    --    [ "QuestEvent03" ]      = {"","Пещера Тка-Рика"}, -- "Дорога испытаний"
-    --    [ "QuestEventDaily" ]      = {"","Пещера Тка-Рика"}, -- "Вызов Вероники"
-    --    [ "MegaGoal_E_IslandDaily_07" ]      = {"","Путь Творца"}, -- "Путь Творца: Пещера Тка-Рика"
     --    [ "Row_E" ]      = {"","Квест на слёзы"}, -- "Во имя Света!"
     --    [ "Row_01_E" ]      = {"","Квест на слёзы"}, -- "Покой для неупокоенных"
     --    [ "Row_02_E" ]      = {"","Квест на слёзы"}, -- "Милость к павшим"
     --    [ "Row_03_E" ]      = {"","Квест на слёзы"}, -- "Крепкий заслон"
     --    [ "MegaGoal_E_IslandDaily_06" ]      = {"","Путь Творца"}, -- "Путь Творца: знатная добыча"
+    --    [ "" ]      = {"","Путь Творца"}, -- "Путь Творца: Сотворение"
 })
 
 
-Global ("specialQuestsTable", {
-    --  [ "sysName" ] = {"SpecialType","...",...}
-    [ "Quest_E1_add_20" ] = {"Talk", "Руины джунского портала", "Отправиться к джунским руинам"},
-})
-
-Global( "specialQuestsTable", {
-----------------------Английская локализация
-	[ "eng_eu" ] = {
-		[ "Remember" ]		 						  = "Remember",
-	},
-----------------------Русская локализация
-	[ "rus" ] = {
---      [ "sysName" ] = {"SpecialType", "NPC/Device.name", SortedArray = {
---          [Cue[1].name], [Cue[2].name],
---      }},
-		[ "Quest_E1_add_20" ] = {"Talk", "Руины джунского портала", objectivesCues = {
-            "Отправиться к джунским руинам",
-        }},
-	},
-})
+--Global ("specialQuestsTable", {
+--  [ "sysName" ] = {"SpecialType","...",...}
+--    [ "Quest_E1_add_20" ] = {"Talk", "Руины джунского портала", "Отправиться к джунским руинам"},
+--})
