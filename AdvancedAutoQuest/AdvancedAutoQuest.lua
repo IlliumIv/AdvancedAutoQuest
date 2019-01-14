@@ -1,14 +1,19 @@
-local isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
-local commonQuestsTable = {["sysNames"] = sysNamesTable, }
-for key, val in pairs(localizedQuestsName) do
-    commonQuestsTable[key] = val
-end
+--------------------------------------------------------------------------------
+--- Configuration
+--------------------------------------------------------------------------------
+local debug = true
+local incinerate = true
+
 local workedQuests = {
     [ "KingdomOfElements" ] = true,
     [ "GuildQuest" ] = true,
     [ "Repeatable" ] = true,
-    [ "Lvling" ] = true,
+    [ "Lvling" ] = (not avatar.IsNextLevelLocked()), -- true, если прокачиваемся
+    [ "Important" ] = true,
+    [ "Mystery" ] = true, -- всегда должно быть true, если "Important" = true
+    [ "DestinyPoints" ] = true,
 }
+
 local weaponPriority = {
     [ "paladin" ] = "DRESS_SLOT_TWOHANDED",
     [ "warrior" ] = "DRESS_SLOT_TWOHANDED",
@@ -22,7 +27,20 @@ local weaponPriority = {
     [ "necromancer" ] = "DRESS_SLOT_ONEHANDED",
     [ "demonolog" ] = "DRESS_SLOT_ONEHANDED",
 }
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--- Locales
+--------------------------------------------------------------------------------
+local isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
+
+local commonQuestsTable = {["sysNames"] = sysNamesTable, }
+for key, val in pairs(localizedQuestsName) do
+    commonQuestsTable[key] = val
+end
+
+for key, val in pairs(specialQuestsTable[localization]) do
+    npcExceptions[localization][val[2]] = true
+end
+--------------------------------------------------------------------------------
 --- Functions
 --------------------------------------------------------------------------------
 function On_EVENT_INTERACTION_STARTED()
@@ -40,7 +58,7 @@ function On_EVENT_INTERACTION_STARTED()
             -- обходим таблицу квестов из квест-бука
             for _, id in pairs(avatarQuestBook) do
                 -- если квест в списке специальных, то
-                if ThisQuestIsSpecial(id) then
+                if Is_SpecialQuest(id) then
                     -- вносим id квеста в таблицу текущих специальных квестов
                     table.insert (currentSpecialQuestsTable, #currentSpecialQuestsTable + 1, id)
                 end
@@ -76,48 +94,15 @@ function On_EVENT_INTERACTION_STARTED()
             end
             -- если таблица квестов у NPC/Device в таргете, которые он может выдать, НЕ пуста, то
             if not IsEmpty(unitQuestsTables.readyToGive) then
-                -- объявим таблицу текущих квестов (текущие - те, которые мы сейчас будем брать)
-                local currentQuestTable = {}
-                -- объявим таблицу дополнительных текущих квестов (все, которые НЕ попали в таблицу текущих квестов)
-                local currentAdditionalQuestsTable = {}
-                -- обходим таблицу квестов у NPC/Device в таргете, которые он может выдать
-                for _, id in pairs(unitQuestsTables.readyToGive) do
-                    local qInf = avatar.GetQuestInfo(id)
-                    -- если (((НЕ необязательные и НЕ повторяемые) или можно сдать за очки судьбы) и уровень квеста выше, чем уровень персонажа - 4) или открывает тайну мира, то
-                    if (((not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped) and (qInf.level > (unit.GetLevel(avatar.GetId()) - 4))) or qInf.isInSecretSequence then
-                        -- вносим id квеста в таблицу текущих квестов
-                        table.insert (currentQuestTable, #currentQuestTable + 1, id)
-                    else
-                        -- вносим id квеста в таблицу дополнительных текущих квестов
-                        table.insert (currentAdditionalQuestsTable, #currentAdditionalQuestsTable + 1, id)
-                    end
-                end
-                -- если таблица дополнительных текущих квестов НЕ пуста, то
-                if not IsEmpty(currentAdditionalQuestsTable) then
-                    -- обходим таблицу дополнительных текущих квестов
-                    for _, id in pairs(currentAdditionalQuestsTable) do
-                        local qInfo = avatar.GetQuestInfo(id)
-                        -- если квест с id в списке квестов и уровень квеста выше, чем уровень персонажа - 4, то
-                        if ThisQuestIsInLists(qInfo) and qInfo.level > (unit.GetLevel(avatar.GetId()) - 4) then
-                            -- вносим id квеста в таблицу текущих квестов
-                            table.insert (currentQuestTable, #currentQuestTable + 1, id)
-                        else
-                            -- если квест в списке квсетов, то
-                            if commonQuestsTable["sysNames"][qInfo.sysName] then
-                                -- если тип квеста - в списке рабочих типов, то
-                                if workedQuests[commonQuestsTable["sysNames"][qInfo.sysName][2]] then
-                                    table.insert (currentQuestTable, #currentQuestTable + 1, id)
-                                end
-                            end
-                        end
-                    end
-                end
-                -- если таблица текущих квестов НЕ пуста
-                if not IsEmpty(currentQuestTable) then
+                -- если игрок указал сжигать лоу-лвл квесты, то
+                if incinerate then
                     -- сожгём неподходящие квесты, чтобы освободить квест-бук
                     DiscardQuests()
-                    -- обходим таблицу текущих квестов
-                    for _, id in pairs(currentQuestTable) do
+                end
+                -- обходим таблицу квестов у NPC/Device в таргете, которые он может выдать
+                for _, id in pairs(unitQuestsTables.readyToGive) do
+                    -- если квест разрешено взять, то
+                    if Is_AllowedQuest(id) then
                         avatar.AcceptQuest(id)
                     end
                 end
@@ -126,28 +111,71 @@ function On_EVENT_INTERACTION_STARTED()
     end
 end
 
+
+
+-- Разрешено ли брать квест
+function Is_AllowedQuest(Is_AllowedQuestId)
+    -- объявим таблицу информации о квесте
+    local is_AllowedQuestInfo = avatar.GetQuestInfo(Is_AllowedQuestId)
+    -- объявим тип квеста из списка аддона
+    local questType = commonQuestsTable["sysNames"][is_AllowedQuestInfo.sysName]
+    -- если тип квеста - Царство стихий, Гильдейский или Повторяемый, то
+    if questType == ("KingdomOfElements" or "GuildQuest" or "Repeatable") then
+        -- вернуть переменную из конфигурации; вернётся true, если игрок разрешил брать квесты или false, если не разрешил
+        return workedQuests[questType]
+    else
+        -- если игрок разрешил брать все важные и квест НЕ низкоприоритетный (в API нет понятия "Важный", есть понятие "Не важный")
+        if (workedQuests["Important"] and (not qInf.isLowPriority)) then
+            return true
+        else
+            -- если игрок разрешил брать тайны мира и квест принадлежит к цепочке на тайну мира, то
+            if (workedQuests["Mystery"] and is_AllowedQuestInfo.isInSecretSequence) then
+                return true
+            else
+                -- если игрок разрешил брать задания за очки судьбы и квест сдаётся за очки судьбы и персонаж прокачивается и (уровень квеста выше, чем уровень персонажа - 4), то
+                if (workedQuests["DestinyPoints"] and is_AllowedQuestInfo.canBeSkipped and workedQuests["Lvling"] and (is_AllowedQuestInfo.level > (unit.GetLevel(avatar.GetId()) - 4))) then
+                    return true
+                end
+            end
+        end
+    end
+    -- если имя квеста есть в юзер.таблице квестов как ключ со значением true
+    if commonQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(is_AllowedQuestInfo.name))] then
+        if debug then
+            LogInfo("Finded ", is_AllowedQuestInfo.sysName, " for ", is_AllowedQuestInfo.name)
+        end
+        return true
+    end
+    return false
+end
+
 -- Сдать эти квесты (Таблица готовых к завершению квестов object.GetInteractorQuests(avatar.GetInterlocutor()).readyToAccept)
 function ReturnThisQuests(uQTreadyToAccept)
     -- обходим таблицу квестов у NPC/Device в таргете, которые он может принять
     for i, id in pairs(uQTreadyToAccept) do
-        -- объявим таблицу наградных предметов
-        local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
-        -- если таблица наградных предметов пуста, то
-        if IsEmpty(itemsQuestsReward) then
-            avatar.ReturnQuest(id, nil)
-        else
-            -- Переписать кусок кода. Он работает, но является *** и потенциально не всегда может выбрать корректную награду.
-            -- смотрим на первый в списке предмет
-            for key, value in pairs(itemsQuestsReward) do
-                -- если этот предмет - оружие, то
-                if itemLib.GetItemInfo(value).isWeapon then
-                    print(itemLib.GetItemInfo(ChooseYourWeapon(itemsQuestsReward)))
-                    -- avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
-                else
-                    avatar.ReturnQuest(id, value)
+        local returnThisQuestsInfo = avatar.GetQuestInfo(id)
+        if commonQuestsTable["sysNames"][returnThisQuestsInfo.sysName] ~= "KingdomOfElements" then
+            -- объявим таблицу наградных предметов
+            local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
+            -- если таблица наградных предметов пуста, то
+            if IsEmpty(itemsQuestsReward) then
+                avatar.ReturnQuest(id, nil)
+            else
+                -- Переписать кусок кода. Он работает, но является *** и потенциально не всегда может выбрать корректную награду.
+                -- смотрим на первый в списке предмет
+                for key, value in pairs(itemsQuestsReward) do
+                    -- если этот предмет - оружие, то
+                    if itemLib.GetItemInfo(value).isWeapon then
+                        print(itemLib.GetItemInfo(ChooseYourWeapon(itemsQuestsReward)))
+                        -- avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
+                    else
+                        avatar.ReturnQuest(id, value)
+                    end
+                    -- выходим из цикла, потому что остальные предметы мы проверять не будем и уже сдали квест, выбрав первый попавшийся предмет
+                    break
                 end
-                -- выходим из цикла, потому что остальные предметы мы проверять не будем и уже сдали квест, выбрав первый попавшийся предмет
-                break
+            else
+                
             end
         end
     end
@@ -156,7 +184,7 @@ end
 -- Выбрать оружие (avatar.GetQuestReward(id).alternativeItems)
 function ChooseYourWeapon(weaponTable)
     -- обходим таблицу доступных к выбору оружий
-    for key, value in pairs(weaponTable) do
+    for key2, value2 in pairs(weaponTable) do
         -- если слот предмета совпадает с приоритетным для класса, то
         if itemLib.GetItemInfo(value).dressSlot == weaponPriority[tostring(avatar.GetClass())] then
             -- вернуть id предмета
@@ -278,7 +306,7 @@ function ThisQuestIsInLists(questInfo)
     return false
 end
 
-function ThisQuestIsSpecial(questId)
+function Is_SpecialQuest(questId)
     if specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName] then
         return true
     end
@@ -327,7 +355,9 @@ function Init()
     common.RegisterEventHandler(On_EVENT_QUEST_RECEIVED, "EVENT_QUEST_RECEIVED")
     common.RegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
     common.UnRegisterEventHandler(Init, "EVENT_AVATAR_CREATED")
-    DiscardQuests()
+    if incinerate then
+        DiscardQuests()
+    end
     if SkipQuests() ~= 0 then
         isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
         common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
