@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <UIAddon>
-    <Name>AutoQuest</Name>
+    <Name>AdvancedAutoQuest</Name>
     <AutoStart>true</AutoStart>
     <ScriptFileRefs>
         <Item href="Locales.txt"/>

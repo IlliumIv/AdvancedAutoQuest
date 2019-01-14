@@ -7,6 +7,7 @@ local workedQuests = {
     [ "KingdomOfElements" ] = true,
     [ "GuildQuest" ] = true,
     [ "Repeatable" ] = true,
+    [ "Lvling" ] = true,
 }
 local weaponPriority = {
     [ "paladin" ] = "DRESS_SLOT_TWOHANDED",
@@ -56,7 +57,7 @@ function On_EVENT_INTERACTION_STARTED()
                     if questName[1] == "Talk" then
                         -- если NPC/Device в таргете - нужный для квеста с id, то
                         if (questName[2] == fromWScore(object.GetName(idInteractor))) then
-                            Talk(currentInterlocutor, idInteractor, questName[objectivesCues])
+                            Talk(currentInterlocutor, idInteractor, questName["objectivesCues"])
                         end
                     end
                 end
@@ -82,8 +83,8 @@ function On_EVENT_INTERACTION_STARTED()
                 -- обходим таблицу квестов у NPC/Device в таргете, которые он может выдать
                 for _, id in pairs(unitQuestsTables.readyToGive) do
                     local qInf = avatar.GetQuestInfo(id)
-                    -- если ((НЕ необязательные и НЕ повторяемые) или можно сдать за очки судьбы) и уровень квеста выше, чем уровень персонажа - 4, то
-                    if ((not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped) and (qInf.level > (unit.GetLevel(avatar.GetId()) - 4)) then
+                    -- если (((НЕ необязательные и НЕ повторяемые) или можно сдать за очки судьбы) и уровень квеста выше, чем уровень персонажа - 4) или открывает тайну мира, то
+                    if (((not qInf.isLowPriority and not qInf.isRepeatable) or qInf.canBeSkipped) and (qInf.level > (unit.GetLevel(avatar.GetId()) - 4))) or qInf.isInSecretSequence then
                         -- вносим id квеста в таблицу текущих квестов
                         table.insert (currentQuestTable, #currentQuestTable + 1, id)
                     else
@@ -96,10 +97,18 @@ function On_EVENT_INTERACTION_STARTED()
                     -- обходим таблицу дополнительных текущих квестов
                     for _, id in pairs(currentAdditionalQuestsTable) do
                         local qInfo = avatar.GetQuestInfo(id)
-                        -- если квест с id в списке квестов и уровень квеста выше, чем уровень персонажа - 4, либо проверка на тип квеста, то
-                        if (ThisQuestIsInLists(qInfo) and qInfo.level > (unit.GetLevel(avatar.GetId()) - 4)) or workedQuests[commonQuestsTable["sysNames"][qInfo.sysName][2]] then
+                        -- если квест с id в списке квестов и уровень квеста выше, чем уровень персонажа - 4, то
+                        if ThisQuestIsInLists(qInfo) and qInfo.level > (unit.GetLevel(avatar.GetId()) - 4) then
                             -- вносим id квеста в таблицу текущих квестов
                             table.insert (currentQuestTable, #currentQuestTable + 1, id)
+                        else
+                            -- если квест в списке квсетов, то
+                            if commonQuestsTable["sysNames"][qInfo.sysName] then
+                                -- если тип квеста - в списке рабочих типов, то
+                                if workedQuests[commonQuestsTable["sysNames"][qInfo.sysName][2]] then
+                                    table.insert (currentQuestTable, #currentQuestTable + 1, id)
+                                end
+                            end
                         end
                     end
                 end
@@ -132,7 +141,8 @@ function ReturnThisQuests(uQTreadyToAccept)
             for key, value in pairs(itemsQuestsReward) do
                 -- если этот предмет - оружие, то
                 if itemLib.GetItemInfo(value).isWeapon then
-                    avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
+                    print(itemLib.GetItemInfo(ChooseYourWeapon(itemsQuestsReward)))
+                    -- avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
                 else
                     avatar.ReturnQuest(id, value)
                 end
@@ -169,7 +179,7 @@ function On_EVENT_QUEST_RECEIVED(params)
     if qInf.canBeSkipped then
         if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
             avatar.SkipQuest(qid)
-            if avatar.IsTalking() then
+            if curInter then
                 avatar.StopInteract()
                 avatar.StartInteract(curInter)
                 return
@@ -269,7 +279,6 @@ function ThisQuestIsInLists(questInfo)
 end
 
 function ThisQuestIsSpecial(questId)
-    LogInfo(specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName])
     if specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName] then
         return true
     end

@@ -3,6 +3,7 @@ Global ("sysNamesTable", {
     [ "Center_1" ] = {true, "KingdomOfElements", false},
     [ "Center_2" ] = {true, "KingdomOfElements", false},
     [ "Center_3" ] = {true, "KingdomOfElements", false},
+    [ "Center_4" ] = {true, "KingdomOfElements", false},
     [ "Ice_1" ] = {true, "KingdomOfElements", false},
     [ "Ice_2" ] = {true, "KingdomOfElements", false},
     [ "Ice_3" ] = {true, "KingdomOfElements", false},
@@ -30,15 +31,17 @@ Global ("sysNamesTable", {
     [ "Water_4" ] = {true, "KingdomOfElements", false}, -- "Парилка"
     [ "IM_HaloRevard" ] = {true, "Repeatable"},
     [ "MegaGoal_L_IslandDaily_07" ] = {true, "Repeatable"},
-    [ "QuestEvent03" ] = {"true", "Repeatable", false}, -- "Пещера Тка-Рика", "Дорога испытаний"
+    [ "QuestEvent03" ] = {"true", "Repeatable", false}, -- "Пещера Тка-Рика", "Дорога испытаний" - запретить стартовать испытания, если 0/10. Сжигать квест по выходу из локации, если 0/10.
     [ "QuestEventDaily" ] = {"true", "Repeatable", false}, -- "Пещера Тка-Рика", "Вызов Вероники"
-    [ "MegaGoal_E_IslandDaily_07" ] = {"true", "Repeatable", false}, -- "Путь Творца", "Путь Творца: Пещера Тка-Рика"
+    [ "MegaGoal_E_IslandDaily_07" ] = {"true", "Repeatable", false}, -- "Путь Творца", "Путь Творца: Пещера Тка-Рика" - брать только в Тка-Рике
     [ "GuildQuest_1_1" ] = {true, "GuildQuest"},
     [ "GuildQuest_3_1" ] = {true, "GuildQuest"},
-    [ "GuildQuest_4_1" ] = {true, "GuildQuest"},
+    [ "GuildQuest_4_1" ] = {true, "GuildQuest"}, -- "Обет Рвения" - не брать больше раза в день
     [ "GuildQuest_5_1" ] = {true, "GuildQuest"},
     [ "GuildQuest_2_17" ] = {true, "GuildQuest"}, -- "Обет Кары: Имперская экспедиция"
     [ "PvP_L1" ] = {true, "GuildQuest"}, -- "Окопная война"
+    [ "Quest_Learn_Shuttle" ] = {true, "Lvling"}, -- "Знакомство с рейсовым астральным кораблём" - просто добежать
+    [ "Quest_Learn_E_Mercenaries" ] = {true, "Lvling"}, -- "Война в кредит" - просто добежать
     [ "Quest_E1_add_20" ] = {true, "E1_HSLine", true, "Наука на службе Империи"}, -- "Первый астралонавт" - Зацикливает "Руины джунского портала", надо выбрать фразу "Отправиться к джунским руинам"
     --    [ "Quest1_0P" ] = {"Trial"}, -- "Обмундирование" - надеть оружие
     --    [ "Quest1_0_2" ] = {"Trial"}, -- "Боевой коктейль" - заюзать итем
@@ -83,6 +86,7 @@ Global ("sysNamesTable", {
     --    [ "Row_03_E" ]      = {"","Квест на слёзы"}, -- "Крепкий заслон"
     --    [ "MegaGoal_E_IslandDaily_06" ]      = {"","Путь Творца"}, -- "Путь Творца: знатная добыча"
     --    [ "" ]      = {"","Путь Творца"}, -- "Путь Творца: Сотворение"
+    --    [ "" ]      = {"","Trial"}, -- "Подготовка к полёту" - построить корабль
 })
 
 
