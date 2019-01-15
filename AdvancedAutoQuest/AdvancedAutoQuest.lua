@@ -94,11 +94,8 @@ function On_EVENT_INTERACTION_STARTED()
             end
             -- если таблица квестов у NPC/Device в таргете, которые он может выдать, НЕ пуста, то
             if not IsEmpty(unitQuestsTables.readyToGive) then
-                -- если игрок указал сжигать лоу-лвл квесты, то
-                if incinerate then
-                    -- сожгём неподходящие квесты, чтобы освободить квест-бук
-                    DiscardQuests()
-                end
+                -- сожгём неподходящие квесты, чтобы освободить квест-бук
+                DiscardQuests()
                 -- обходим таблицу квестов у NPC/Device в таргете, которые он может выдать
                 for _, id in pairs(unitQuestsTables.readyToGive) do
                     -- если квест разрешено взять, то
@@ -175,7 +172,7 @@ function ReturnThisQuests(uQTreadyToAccept)
                     break
                 end
             else
-                
+
             end
         end
     end
@@ -268,22 +265,25 @@ function SkipQuests()
 end
 
 function DiscardQuests()
-    local qTable = avatar.GetQuestBook()
-    if not qTable then
-        return
-    end
-    local FiredIt = {}
-    for _, id in pairs(qTable) do
-        local qinform = avatar.GetQuestInfo(id)
-        if workedQuests[commonQuestsTable["sysNames"][qinform.sysName]] then
-            if (qinform.level < (unit.GetLevel(avatar.GetId()) - 3)) and avatar.GetQuestProgress(id).state ~= 1 and not workedQuests[commonQuestsTable["sysNames"][qinform.sysName][2]] then
-                table.insert (FiredIt, #FiredIt + 1, id)
+    -- если игрок указал сжигать лоу-лвл квесты, то
+    if incinerate then
+        local qTable = avatar.GetQuestBook()
+        if not qTable then
+            return
+        end
+        local FiredIt = {}
+        for _, id in pairs(qTable) do
+            local qinform = avatar.GetQuestInfo(id)
+            if workedQuests[commonQuestsTable["sysNames"][qinform.sysName]] then
+                if (qinform.level < (unit.GetLevel(avatar.GetId()) - 3)) and avatar.GetQuestProgress(id).state ~= 1 and not workedQuests[commonQuestsTable["sysNames"][qinform.sysName][2]] then
+                    table.insert (FiredIt, #FiredIt + 1, id)
+                end
             end
         end
-    end
-    if not IsEmpty(FiredIt) then
-        for _, id in pairs(FiredIt) do
-            avatar.DiscardQuest(id)
+        if not IsEmpty(FiredIt) then
+            for _, id in pairs(FiredIt) do
+                avatar.DiscardQuest(id)
+            end
         end
     end
 end
@@ -355,9 +355,7 @@ function Init()
     common.RegisterEventHandler(On_EVENT_QUEST_RECEIVED, "EVENT_QUEST_RECEIVED")
     common.RegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
     common.UnRegisterEventHandler(Init, "EVENT_AVATAR_CREATED")
-    if incinerate then
-        DiscardQuests()
-    end
+    DiscardQuests()
     if SkipQuests() ~= 0 then
         isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
         common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
