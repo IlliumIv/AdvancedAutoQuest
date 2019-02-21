@@ -1,9 +1,12 @@
 --------------------------------------------------------------------------------
 --- Configuration
 --------------------------------------------------------------------------------
+-- нужно ли логировать отладочную информацию
 local debug = true
+-- нужно ли сжигать лоу-лвл квесты
 local incinerate = true
 
+-- таблица типов квестов
 local workedQuests = {
     [ "KingdomOfElements" ] = true,
     [ "GuildQuest" ] = true,
@@ -14,6 +17,8 @@ local workedQuests = {
     [ "DestinyPoints" ] = true,
 }
 
+-- таблица типов оружия по классам
+-- !! Надо проверить в игре соответствие оружия классам
 local weaponPriority = {
     [ "paladin" ] = "DRESS_SLOT_TWOHANDED",
     [ "warrior" ] = "DRESS_SLOT_TWOHANDED",
@@ -30,13 +35,16 @@ local weaponPriority = {
 --------------------------------------------------------------------------------
 --- Locales
 --------------------------------------------------------------------------------
+-- нужно ли отслеживать изменение количества очков судьбы у аватара
 local isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
 
+-- строим текущую таблицу квестов, собирая её из пользовательской и встроенной таблиц
 local commonQuestsTable = {["sysNames"] = sysNamesTable, }
 for key, val in pairs(localizedQuestsName) do
     commonQuestsTable[key] = val
 end
 
+-- строим таблицу NPC-исключений для возможности отдельной обработки их фраз
 for key, val in pairs(specialQuestsTable[localization]) do
     npcExceptions[localization][val[2]] = true
 end
@@ -44,6 +52,8 @@ end
 --- Functions
 --------------------------------------------------------------------------------
 function On_EVENT_INTERACTION_STARTED()
+    -- !! Попытка прекратить многократный вызов  функции при разговоре с NPC после каждого действия
+    common.UnRegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
     local currentInterlocutor = avatar.GetInterlocutor()
     -- если Интерлокатор существует, то
     if currentInterlocutor then
@@ -106,11 +116,12 @@ function On_EVENT_INTERACTION_STARTED()
             end
         end
     end
+    -- !! Удалить при удалении отписки на событие в начале функции
+    -- подписываемся на событие снова после всех действий
+    common.RegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
 end
 
-
-
--- Разрешено ли брать квест
+-- Разрешено ли брать квест (questId)
 function Is_AllowedQuest(Is_AllowedQuestId)
     -- объявим таблицу информации о квесте
     local is_AllowedQuestInfo = avatar.GetQuestInfo(Is_AllowedQuestId)
@@ -151,6 +162,7 @@ function ReturnThisQuests(uQTreadyToAccept)
     -- обходим таблицу квестов у NPC/Device в таргете, которые он может принять
     for i, id in pairs(uQTreadyToAccept) do
         local returnThisQuestsInfo = avatar.GetQuestInfo(id)
+        -- если квест - не из Царства Стихий, то
         if commonQuestsTable["sysNames"][returnThisQuestsInfo.sysName] ~= "KingdomOfElements" then
             -- объявим таблицу наградных предметов
             local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
@@ -158,21 +170,19 @@ function ReturnThisQuests(uQTreadyToAccept)
             if IsEmpty(itemsQuestsReward) then
                 avatar.ReturnQuest(id, nil)
             else
-                -- Переписать кусок кода. Он работает, но является *** и потенциально не всегда может выбрать корректную награду.
-                -- смотрим на первый в списке предмет
+                -- обходим список наградных предметов
                 for key, value in pairs(itemsQuestsReward) do
                     -- если этот предмет - оружие, то
                     if itemLib.GetItemInfo(value).isWeapon then
-                        print(itemLib.GetItemInfo(ChooseYourWeapon(itemsQuestsReward)))
-                        -- avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
-                    else
-                        avatar.ReturnQuest(id, value)
+                        -- сдать квест, выбрав подходящее по классу оружие
+                        avatar.ReturnQuest(id, ChooseYourWeapon(itemsQuestsReward))
+                        -- выйти из функции
+                        return
                     end
-                    -- выходим из цикла, потому что остальные предметы мы проверять не будем и уже сдали квест, выбрав первый попавшийся предмет
-                    break
                 end
-            else
-
+                -- сдать квест, выбрав первый предмет из списка наград
+                -- !! Проверить, что таблица наградных предметов содержит нулевой индекс
+                avatar.ReturnQuest(id, itemsQuestsReward[0])
             end
         end
     end
@@ -192,121 +202,121 @@ function ChooseYourWeapon(weaponTable)
     return weaponTable[0]
 end
 
+-- Аватар получил квест
 function On_EVENT_QUEST_RECEIVED(params)
+    -- получим id квеста из параметров события
     local qid = params.questId
-    local qInf = avatar.GetQuestInfo(qid)
-    --Отладка
-    if not ThisQuestIsInLists(qInf) then
-        LogInfo(fromWScore(common.ExtractWStringFromValuedText(qInf.name)), " : ", qInf.sysName, " : ", qInf.plotLine, " : ", qInf.canBeSkipped, " : ", qInf.isInSecretSequence)
-    end
-    --Отладка
-    local curInter = avatar.GetInterlocutor()
-    if qInf.canBeSkipped then
+    -- если квест сдаётся за очки судьбы, то
+    if avatar.GetQuestInfo(qid).canBeSkipped then
+        -- если количество необходимых для сдачи квеста очков судьбы меньше или равно количеству очков судьбы у аватара, то
         if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
             avatar.SkipQuest(qid)
-            if curInter then
-                avatar.StopInteract()
-                avatar.StartInteract(curInter)
-                return
-            end
         else
+            -- если нет подписки на событие изменения количества очков судьбы, то
             if not isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED then
+                -- переключим переменную, которую проверяли выше
                 isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
+                -- подпишемся на событие изменения количества очков судьбы
                 common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
             end
         end
     end
+    -- если аватар разговаривает, то
     if avatar.IsTalking() then
         On_EVENT_INTERACTION_STARTED()
-        return
-    end
-    if curInter then
-        avatar.StopInteract()
-        --Отладка
-        LogInfo("EVENT_QUEST_RECEIVED, Stop...Start Interact")
-        --Отладка
-        avatar.StartInteract(curInter)
     end
 end
 
+-- Количество очков судьбы изменилось
 function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
-    local count
-    repeat
-        count = SkipQuests()
-    until (count > avatar.GetDestinyPoints().total) or (count == 0)
-    if count == 0 then
-        common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
-        isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
+    -- не отслеживать изменение количества очков судьбы
+    isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
+    -- отпишемся от события изменения количества очков судьбы
+    common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
+    -- если функция выполнения квестов за очки судьбы не вернула ноль или null, то
+    if SkipQuests() ~= (0 or null) then
+        -- отслеживать изменение количества очков судьбы
+        isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
+        -- подпишемся на событие изменения количества очков судьбы
+        common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     end
-    if avatar.IsTalking() then
-        On_EVENT_INTERACTION_STARTED()
-    end
+    -- если аватар находится в состоянии разговора, то вызвать функцию начала взаимодейтсвия
+    -- !! Закомментирую, пытаемся убрать многократный запуск функции во время разговора при изменении количества очков судьбы
+    -- if avatar.IsTalking() then
+    --     On_EVENT_INTERACTION_STARTED()
+    -- end
 end
 
+-- Выполнить квест за очки судьбы, возвращает количество необходимых для сдачи всех квестов очков судьбы
 function SkipQuests()
+    -- объявим таблицу имеющихся у аватара квестов
     local qTable = avatar.GetQuestBook()
+    -- если таблица пуста, то
     if not qTable then
         return
-    end
-    local needDestinyPoints = 0
-    for _, id in pairs(qTable) do
-        if avatar.GetQuestInfo(id).canBeSkipped then
-            local currentNeedDestinyPoints = avatar.GetSkipQuestCost(id)
-            if currentNeedDestinyPoints <= avatar.GetDestinyPoints().total and avatar.GetQuestProgress(id).state == 0 then
-                avatar.SkipQuest(id)
-            else
-                if avatar.GetQuestProgress(id).state == 0 then
-                    needDestinyPoints = needDestinyPoints + currentNeedDestinyPoints
+    else
+        -- объявим переменную, которая считает наобходимое количество очков судьбы для сдачи всех подходящих квестов
+        local needDestinyPoints = 0
+        -- обходим таблицу имеющихся у аватара квестов
+        for _, id in pairs(qTable) do
+            -- если квест сдаётся за очки судьбы, то
+            if avatar.GetQuestInfo(id).canBeSkipped then
+                -- получим необходимое для сдачи квеста количество очков судьбы
+                local currentNeedDestinyPoints = avatar.GetSkipQuestCost(id)
+                -- если это количество меньше или равно количеству очков судьбы у аватара и состояние квеста == enum QUEST_IN_PROGRESS, то
+                if currentNeedDestinyPoints <= avatar.GetDestinyPoints().total and avatar.GetQuestProgress(id).state == 0 then
+                    -- !! Хорошо было бы выполнять за очки судьбы не все подряд квесты, а по приоритету - сначала тайны мира, потом по уровню.
+                    avatar.SkipQuest(id)
+                else
+                    -- если состояние квеста == enum QUEST_IN_PROGRESS, то
+                    if avatar.GetQuestProgress(id).state == 0 then
+                        -- добавим к нужному количеству очков судьбы для сдачи всех квестов количество очков судьбы для сдачи конкретного квеста
+                        needDestinyPoints = needDestinyPoints + currentNeedDestinyPoints
+                    end
                 end
             end
         end
+        -- вернём количество необходимых для сдачи всех квестов очков судьбы
+        return needDestinyPoints
     end
-    return needDestinyPoints
 end
 
+-- Сжечь лоу-лвл квесты
 function DiscardQuests()
     -- если игрок указал сжигать лоу-лвл квесты, то
     if incinerate then
+        -- объявим таблицу имеющихся у аватара квестов
         local qTable = avatar.GetQuestBook()
+        -- если таблица пуста, то
         if not qTable then
             return
         end
+        -- объявим таблицу квестов, которые надо сжечь
         local FiredIt = {}
+        -- обходим таблицу имеющихся у аватара квестов
         for _, id in pairs(qTable) do
+            -- объявим таблицу с информацией о квесте
             local qinform = avatar.GetQuestInfo(id)
-            if workedQuests[commonQuestsTable["sysNames"][qinform.sysName]] then
-                if (qinform.level < (unit.GetLevel(avatar.GetId()) - 3)) and avatar.GetQuestProgress(id).state ~= 1 and not workedQuests[commonQuestsTable["sysNames"][qinform.sysName][2]] then
-                    table.insert (FiredIt, #FiredIt + 1, id)
-                end
+            -- если квест не в цепочке тайн мира и не повторяемый и уровень квеста ниже уровня автара на 3 уровня и прогресс квеста не (enum QUEST_READY_TO_RETURN или QUEST_COMPLETED), то
+            if (not qinform.isInSecretSequence) and (not qinform.isRepeatable) and (qinform.level < (unit.GetLevel(avatar.GetId()) - 3)) and (avatar.GetQuestProgress(id).state ~= (1 or 2)) then
+                -- добавим квест в таблицу квестов, которые надо сжечь
+                table.insert (FiredIt, #FiredIt + 1, id)
             end
         end
+        -- если таблица квестов, которые нужно сжечь, не пуста, то
         if not IsEmpty(FiredIt) then
+            -- обходим таблицу квестов, которые нужно сжечь
             for _, id in pairs(FiredIt) do
+                -- сжигаем квест
                 avatar.DiscardQuest(id)
             end
         end
     end
 end
 
-function ThisQuestIsInLists(questInfo)
-    local questInfoName = fromWScore(common.ExtractWStringFromValuedText(questInfo.name))
-    if commonQuestsTable["sysNames"][questInfo.sysName] then
-        if commonQuestsTable["sysNames"][questInfo.sysName][1] then
-            if workedQuests[commonQuestsTable["sysNames"][questInfo.sysName][2]] then
-                return true
-            end
-        end
-    end
-    if commonQuestsTable[localization][questInfoName] then
-        --Отладка
-        LogInfo("Finded ", questInfo.sysName, " for ", questInfoName)
-        --Отладка
-        return commonQuestsTable[localization][questInfoName]
-    end
-    return false
-end
-
+-- Проверка, специальный ли квест
 function Is_SpecialQuest(questId)
+    -- если sysName есть в таблице специальных квестов, то
     if specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName] then
         return true
     end
@@ -355,9 +365,13 @@ function Init()
     common.RegisterEventHandler(On_EVENT_QUEST_RECEIVED, "EVENT_QUEST_RECEIVED")
     common.RegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
     common.UnRegisterEventHandler(Init, "EVENT_AVATAR_CREATED")
+    -- сжигаем лоу-лвл квесты
     DiscardQuests()
-    if SkipQuests() ~= 0 then
+    -- если функция выполнения квестов за очки судьбы не вернула ноль или null, то
+    if SkipQuests() ~= (0 or null) then
+        -- отслеживать изменение количества очков судьбы
         isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
+        -- подпишемся на событие изменения количества очков судьбы
         common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
     end
 end
