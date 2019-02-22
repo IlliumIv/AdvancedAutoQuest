@@ -358,6 +358,20 @@ function Talk(cIlr, iId, objectivesCuesTable)
     end
 end
 
+-- Найти следующий квест тайны мира
+function FindNextMysteryQuest()
+    -- обходим таблицу тайн мира
+    for _, secretId in pairs(avatar.GetSecrets()) do
+        -- обходим таблицу этапов тайны мира
+        for i, component in pairs (avatar.GetSecretComponents(secretId)) do
+            -- если этап открыт и не закрыт и уровень этапа равен или ниже уровня аватара, то
+            if component.opened and (not component.closed) and (component.level <= unit.GetLevel(avatar.GetId())) then
+                chat('#f0c419', 'Finded available quest of stage of Mystery ', avatar.GetQuestInfo(avatar.GetSecretInfo(secretId).questId).name)
+            end
+        end
+    end
+end
+
 --------------------------------------------------------------------------------
 --- INITIALIZATION
 --------------------------------------------------------------------------------
