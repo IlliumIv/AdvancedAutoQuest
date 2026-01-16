@@ -12,7 +12,7 @@ local workedQuests = {
     [ "GuildQuest" ] = false,
     [ "Repeatable" ] = false,
     -- [ "Lvling" ] = (not avatar.IsNextLevelLocked()), -- true, если прокачиваемся
-    [ "Lvling" ] = false, -- true, если прокачиваемся
+    [ "Lvling" ] = true, -- true, если прокачиваемся
     [ "Important" ] = true,
     [ "Mystery" ] = true, -- всегда должно быть true, если "Important" = true
     [ "DestinyPoints" ] = true,
@@ -81,7 +81,7 @@ function On_EVENT_INTERACTION_STARTED()
                 -- обходим таблицу специальных квестов из квест-бука
                 for _, id in pairs(currentSpecialQuestsTable) do
                     -- объявим переменную, чтобы не вычислять три раза
-                    local questName = specialQuestsTable[localization][avatar.GetQuestInfo(id).sysName]
+                    local questName = specialQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(avatar.GetQuestInfo(id).name))]
                     -- если тип специального квеста - Talk, то
                     if questName[1] == "Talk" then
                         -- если NPC/Device в таргете - нужный для квеста с id, то
@@ -92,6 +92,7 @@ function On_EVENT_INTERACTION_STARTED()
                 end
             end
         end
+
         -- объявим таблицу текущих квестов у NPC/Device в таргете
         local unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
         -- если таблица квестов у NPC/Device в таргете НЕ пуста, то
@@ -301,7 +302,7 @@ end
 -- Проверка, специальный ли квест
 function Is_SpecialQuest(questId)
     -- если sysName есть в таблице специальных квестов, то
-    if specialQuestsTable[localization][avatar.GetQuestInfo(questId).sysName] then
+    if specialQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(avatar.GetQuestInfo(questId).name))] then
         return true
     end
     return false
