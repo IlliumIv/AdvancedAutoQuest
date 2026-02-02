@@ -6,20 +6,7 @@ Global("localization", "eng_eu")
 -- |Aesthetically improved by Ramirez |
 -- +----------------------------------+
 
-local function GetGameLocalization()
-    local id = options.GetOptionsByCustomType( "interface_option_localization" )[ 0 ]
-    if id then
-        local values = options.GetOptionInfo( id ).values
-        local value = values and values[ 0 ]
-        local name = value and value.name
-        if name then
-            return userMods.FromWString( name )
-        else
-            return localization
-        end
-    end
-end
-localization = GetGameLocalization()
+localization = common.GetLocalization()
 
 function GTL(strTextName)
     return locales[ localization ][ strTextName ] or locales[ "eng_eu" ][ strTextName ] or strTextName
