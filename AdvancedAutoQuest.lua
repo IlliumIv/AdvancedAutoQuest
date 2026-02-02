@@ -46,9 +46,12 @@ for key, val in pairs(localizedQuestsName) do
 end
 
 -- строим таблицу NPC-исключений для возможности отдельной обработки их фраз
-for key, val in pairs(specialQuestsTable[localization]) do
-    npcExceptions[localization][val[2]] = true
+for key, questName in pairs(specialQuestsTable[localization]) do
+    for objectName, _ in pairs(questName.objects) do
+        npcExceptions[localization][objectName] = true
+    end
 end
+
 --------------------------------------------------------------------------------
 --- Functions
 --------------------------------------------------------------------------------
@@ -71,7 +74,7 @@ function On_EVENT_INTERACTION_STARTED()
                 -- если квест в списке специальных, то
                 if Is_SpecialQuest(id) then
                     -- вносим id квеста в таблицу текущих специальных квестов
-                    table.insert (currentSpecialQuestsTable, #currentSpecialQuestsTable + 1, id)
+                    table.insert(currentSpecialQuestsTable, #currentSpecialQuestsTable + 1, id)
                 end
             end
             -- если таблица текущих специальных квестов пуста, то
@@ -81,12 +84,13 @@ function On_EVENT_INTERACTION_STARTED()
                 -- обходим таблицу специальных квестов из квест-бука
                 for _, id in pairs(currentSpecialQuestsTable) do
                     -- объявим переменную, чтобы не вычислять три раза
-                    local questName = specialQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(avatar.GetQuestInfo(id).name))]
-                    -- если тип специального квеста - Talk, то
-                    if questName[1] == "Talk" then
-                        -- если NPC/Device в таргете - нужный для квеста с id, то
-                        if (questName[2] == fromWScore(object.GetName(idInteractor))) then
-                            Talk(currentInterlocutor, idInteractor, questName["objectivesCues"])
+                    local questActions = specialQuestsTable[localization][userMods.FromValuedText(avatar.GetQuestInfo(id).name, true)]
+                    for objectName, objectAction in pairs(questActions.objects) do
+                        -- LogInfo(objectName)
+                        if (objectName == fromWScore(object.GetName(idInteractor))) then
+                            if objectAction.type == "Talk" then
+                                Talk(currentInterlocutor, idInteractor, objectAction.objectivesCues)
+                            end
                         end
                     end
                 end
@@ -146,7 +150,7 @@ function Is_AllowedQuest(Is_AllowedQuestId)
         and (is_AllowedQuestInfo.level > (unit.GetLevel(avatar.GetId()) - 4))) then return true end
 
     -- если имя квеста есть в юзер.таблице квестов как ключ со значением true
-    if commonQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(is_AllowedQuestInfo.name))] then
+    if commonQuestsTable[localization][userMods.FromValuedText(is_AllowedQuestInfo.name, true)] then
         if debug then LogInfo("Finded ", is_AllowedQuestInfo.sysName, " for ", is_AllowedQuestInfo.name) end
     return true end
 
@@ -303,7 +307,7 @@ end
 -- Проверка, специальный ли квест
 function Is_SpecialQuest(questId)
     -- если sysName есть в таблице специальных квестов, то
-    if specialQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(avatar.GetQuestInfo(questId).name))] then
+    if specialQuestsTable[localization][userMods.FromValuedText(avatar.GetQuestInfo(questId).name, true)] then
         return true
     end
     return false
@@ -316,12 +320,14 @@ function Talk(cIlr, iId, objectivesCuesTable)
     -- если существует хотя бы один, то
     if answers[0] then
         -- если передан массив специальных ответов, то
+        -- LogInfo(answers)
         if not IsEmpty(objectivesCuesTable) then
             -- обходим массив специальных ответов
             for objectivesCuesTable_key, cueName in pairs(objectivesCuesTable) do
                 -- обходим массив ответов у NPC/Device в таргете
                 for cueIndex, CueTable in pairs(answers) do
                     -- если название ответа совпадает со специальным ответом по индексу, то
+                    -- LogInfo(fromWScore(answers[cueIndex].name))
                     if fromWScore(answers[cueIndex].name) == objectivesCuesTable[objectivesCuesTable_key] then
                         avatar.SelectInteractorCue(cueIndex)
                     end
@@ -333,14 +339,35 @@ function Talk(cIlr, iId, objectivesCuesTable)
                 -- если NPC связан любым квестом в квест-буке, то
                 if unit.GetRelatedQuestObjectives(cIlr) then
                     avatar.SelectInteractorCue(0)
+                    return
+                end
+                if IsCueTextMentionAQuest(answers[0]) then
+                    avatar.SelectInteractorCue(0)
+                    return
                 end
             else
                 -- если Device связан любым квестом в квест-буке, то
                 if device.GetRelatedQuestObjectives(cIlr) then
                     avatar.SelectInteractorCue(#answers)
+                    return
+                end
+                if IsCueTextMentionAQuest(answers[#answers]) then
+                    avatar.SelectInteractorCue(#answers)
+                    return
                 end
             end
         end
+    end
+end
+
+function IsCueTextMentionAQuest(cue)
+    local questsIs = avatar.GetQuestBook()
+    -- LogInfo(cue.name)
+    -- LogInfo(cue.text)
+    for _, qid in pairs(questsIs) do
+        local mtch = string.match(userMods.FromValuedText(cue.text, true), userMods.FromValuedText(avatar.GetQuestInfo(qid).name, true))
+        -- LogInfo(cue)
+        if mtch then return mtch end
     end
 end
 
@@ -367,6 +394,20 @@ function Init()
     common.UnRegisterEventHandler(Init, "EVENT_AVATAR_CREATED")
     -- сжигаем лоу-лвл квесты
     DiscardQuests()
+
+    -- local questsIs = avatar.GetQuestBook()
+    -- for _, questId in pairs(questsIs) do
+    --    local mtch = string.match(userMods.FromValuedText(cue.text, true), userMods.FromValuedText(avatar.GetQuestInfo(qid).name, true))
+    --     LogInfo(avatar.GetQuestInfo(qid))
+    --     local progress = avatar.GetQuestProgress(questId)
+    --     if progress and progress.objectives then
+    --         for _, objectiveId in pairs(progress.objectives) do
+    --             local objectiveInfo = avatar.GetQuestObjectiveInfo(objectiveId)
+    --             LogInfo(objectiveInfo)
+    --         end
+    --     end
+    -- end
+
     -- если функция выполнения квестов за очки судьбы не вернула ноль или null, то
     if SkipQuests() ~= (0 or null) then
         -- отслеживать изменение количества очков судьбы
