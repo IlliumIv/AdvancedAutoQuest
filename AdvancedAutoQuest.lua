@@ -36,8 +36,6 @@ local weaponPriority = {
 --------------------------------------------------------------------------------
 --- Locales
 --------------------------------------------------------------------------------
--- нужно ли отслеживать изменение количества очков судьбы у аватара
-local isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
 
 -- строим текущую таблицу квестов, собирая её из пользовательской и встроенной таблиц
 local commonQuestsTable = {["sysNames"] = sysNamesTable, }
@@ -82,6 +80,7 @@ function On_EVENT_INTERACTION_STARTED()
                 for _, id in pairs(currentSpecialQuestsTable) do
                     -- объявим переменную, чтобы не вычислять три раза
                     local questName = specialQuestsTable[localization][avatar.GetQuestInfo(id).sysName]
+                    if avatar.GetQuestProgress(id).state == QUEST_READY_TO_RETURN then break end
                     -- если тип специального квеста - Talk, то
                     if questName[1] == "Talk" then
                         -- если NPC/Device в таргете - нужный для квеста с id, то
@@ -141,12 +140,12 @@ function Is_AllowedQuest(Is_AllowedQuestId)
     if (workedQuests["Mystery"] and is_AllowedQuestInfo.isInSecretSequence) then return true end
 
     -- если игрок разрешил брать задания за очки судьбы и квест сдаётся за очки судьбы и персонаж прокачивается и (уровень квеста выше, чем уровень персонажа - 4), то
-    if (workedQuests["DestinyPoints"] and is_AllowedQuestInfo.canBeSkipped and workedQuests["Lvling"]
+    if (workedQuests["DestinyPoints"] and workedQuests["Lvling"]
         and (is_AllowedQuestInfo.level > (unit.GetLevel(avatar.GetId()) - 4))) then return true end
 
     -- если имя квеста есть в юзер.таблице квестов как ключ со значением true
     if commonQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(is_AllowedQuestInfo.name))] then
-        if debug then LogInfo("Finded ", is_AllowedQuestInfo.sysName, " for ", is_AllowedQuestInfo.name) end
+        if debug then ChatLog("Finded ", is_AllowedQuestInfo.sysName, " for ", is_AllowedQuestInfo.name) end
     return true end
 
 return false end
@@ -188,80 +187,9 @@ end
 
 -- Аватар получил квест
 function On_EVENT_QUEST_RECEIVED(params)
-    -- получим id квеста из параметров события
-    local qid = params.questId
-    -- если квест сдаётся за очки судьбы, то
-    if avatar.GetQuestInfo(qid).canBeSkipped then
-        -- если количество необходимых для сдачи квеста очков судьбы меньше или равно количеству очков судьбы у аватара, то
-        if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
-            avatar.SkipQuest(qid)
-        else
-            -- если нет подписки на событие изменения количества очков судьбы, то
-            if not isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED then
-                -- переключим переменную, которую проверяли выше
-                isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
-                -- подпишемся на событие изменения количества очков судьбы
-                common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
-            end
-        end
-    end
     -- если аватар разговаривает, то
     if avatar.IsTalking() then
         On_EVENT_INTERACTION_STARTED()
-    end
-end
-
--- Количество очков судьбы изменилось
-function On_EVENT_AVATAR_DESTINY_POINTS_CHANGED (params)
-    -- не отслеживать изменение количества очков судьбы
-    isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = false
-    -- отпишемся от события изменения количества очков судьбы
-    common.UnRegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
-    -- если функция выполнения квестов за очки судьбы не вернула ноль или null, то
-    if SkipQuests() ~= (0 or null) then
-        -- отслеживать изменение количества очков судьбы
-        isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
-        -- подпишемся на событие изменения количества очков судьбы
-        common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
-    end
-    -- если аватар находится в состоянии разговора, то вызвать функцию начала взаимодейтсвия
-    -- !! Закомментирую, пытаемся убрать многократный запуск функции во время разговора при изменении количества очков судьбы
-    -- if avatar.IsTalking() then
-    --     On_EVENT_INTERACTION_STARTED()
-    -- end
-end
-
--- Выполнить квест за очки судьбы, возвращает количество необходимых для сдачи всех квестов очков судьбы
-function SkipQuests()
-    -- объявим таблицу имеющихся у аватара квестов
-    local qTable = avatar.GetQuestBook()
-    -- если таблица пуста, то
-    if not qTable then
-        return
-    else
-        -- объявим переменную, которая считает наобходимое количество очков судьбы для сдачи всех подходящих квестов
-        local needDestinyPoints = 0
-        -- обходим таблицу имеющихся у аватара квестов
-        for _, id in pairs(qTable) do
-            -- если квест сдаётся за очки судьбы, то
-            if avatar.GetQuestInfo(id).canBeSkipped then
-                -- получим необходимое для сдачи квеста количество очков судьбы
-                local currentNeedDestinyPoints = avatar.GetSkipQuestCost(id)
-                -- если это количество меньше или равно количеству очков судьбы у аватара и состояние квеста == enum QUEST_IN_PROGRESS, то
-                if currentNeedDestinyPoints <= avatar.GetDestinyPoints().total and avatar.GetQuestProgress(id).state == 0 then
-                    -- !! Хорошо было бы выполнять за очки судьбы не все подряд квесты, а по приоритету - сначала тайны мира, потом по уровню.
-                    avatar.SkipQuest(id)
-                else
-                    -- если состояние квеста == enum QUEST_IN_PROGRESS, то
-                    if avatar.GetQuestProgress(id).state == 0 then
-                        -- добавим к нужному количеству очков судьбы для сдачи всех квестов количество очков судьбы для сдачи конкретного квеста
-                        needDestinyPoints = needDestinyPoints + currentNeedDestinyPoints
-                    end
-                end
-            end
-        end
-        -- вернём количество необходимых для сдачи всех квестов очков судьбы
-        return needDestinyPoints
     end
 end
 
@@ -365,13 +293,6 @@ function Init()
     common.UnRegisterEventHandler(Init, "EVENT_AVATAR_CREATED")
     -- сжигаем лоу-лвл квесты
     DiscardQuests()
-    -- если функция выполнения квестов за очки судьбы не вернула ноль или null, то
-    if SkipQuests() ~= (0 or null) then
-        -- отслеживать изменение количества очков судьбы
-        isRegistred_EVENT_AVATAR_DESTINY_POINTS_CHANGED = true
-        -- подпишемся на событие изменения количества очков судьбы
-        common.RegisterEventHandler(On_EVENT_AVATAR_DESTINY_POINTS_CHANGED, "EVENT_AVATAR_DESTINY_POINTS_CHANGED")
-    end
 end
 --------------------------------------------------------------------------------
 -- stateMainForm:GetChildChecked("NpcTalk", false):GetChildChecked("QuestPanel", false):GetChildChecked("ButtonsPanel", true):AddChild(mainForm)
