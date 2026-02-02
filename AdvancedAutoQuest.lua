@@ -6,13 +6,13 @@ local debug = false
 -- нужно ли сжигать лоу-лвл квесты
 local incinerate = false
 
+local maxLevel = 70
+
 -- таблица типов квестов
 local workedQuests = {
     [ "KingdomOfElements" ] = false,
     [ "GuildQuest" ] = false,
     [ "Repeatable" ] = false,
-    -- [ "Lvling" ] = (not avatar.IsNextLevelLocked()), -- true, если прокачиваемся
-    [ "Lvling" ] = true, -- true, если прокачиваемся
     [ "Important" ] = true,
     [ "Mystery" ] = true, -- всегда должно быть true, если "Important" = true
     [ "DestinyPoints" ] = true,
@@ -92,7 +92,6 @@ function On_EVENT_INTERACTION_STARTED()
                 end
             end
         end
-
         -- объявим таблицу текущих квестов у NPC/Device в таргете
         local unitQuestsTables = object.GetInteractorQuests(currentInterlocutor)
         -- если таблица квестов у NPC/Device в таргете НЕ пуста, то
@@ -123,31 +122,48 @@ function On_EVENT_INTERACTION_STARTED()
     common.RegisterEventHandler(On_EVENT_INTERACTION_STARTED, "EVENT_INTERACTION_STARTED")
 end
 
+function IsMaxLevelReached()
+    local id = avatar.GetId()
+    local level = unit.GetLevel(id)
+    return level < maxLevel
+end
+
 -- Разрешено ли брать квест (questId)
-function Is_AllowedQuest(Is_AllowedQuestId)
+function Is_AllowedQuest(questId)
     -- объявим таблицу информации о квесте
-    local is_AllowedQuestInfo = avatar.GetQuestInfo(Is_AllowedQuestId)
+    local questInfo = avatar.GetQuestInfo(questId)
     -- объявим тип квеста из списка аддона
-    local questType = commonQuestsTable["sysNames"][is_AllowedQuestInfo.sysName]
+    local questType = commonQuestsTable["sysNames"][questInfo.sysName]
+
+    if debug then
+        LogInfo(fromWScore(common.ExtractWStringFromValuedText(questInfo.name)))
+        for k, v in pairs(questInfo) do
+            LogInfo(k, ": ", v)
+        end
+    end
 
     -- если тип квеста - Царство стихий, Гильдейский или Повторяемый, то
     if questType == ("KingdomOfElements") then return workedQuests["KingdomOfElements"] end
     if questType == ("GuildQuest") then return workedQuests["GuildQuest"] end
-    if questType == ("Repeatable") then return workedQuests["Repeatable"] end
+    -- if questType == ("Repeatable") then return workedQuests["Repeatable"] end
+    if questInfo.isRepeatable then
+        return workedQuests["Repeatable"]
+               or commonQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(questInfo.name))]
+    end
 
     -- если игрок разрешил брать все важные и квест НЕ низкоприоритетный (в API нет понятия "Важный", есть понятие "Не важный")
-    if (workedQuests["Important"] and (not is_AllowedQuestInfo.isLowPriority)) then return true end
+    if (workedQuests["Important"] and (not questInfo.isLowPriority)) then return true end
 
     -- если игрок разрешил брать тайны мира и квест принадлежит к цепочке на тайну мира, то
-    if (workedQuests["Mystery"] and is_AllowedQuestInfo.isInSecretSequence) then return true end
+    if (workedQuests["Mystery"] and questInfo.isInSecretSequence) then return true end
 
     -- если игрок разрешил брать задания за очки судьбы и квест сдаётся за очки судьбы и персонаж прокачивается и (уровень квеста выше, чем уровень персонажа - 4), то
-    if (workedQuests["DestinyPoints"] and is_AllowedQuestInfo.canBeSkipped and workedQuests["Lvling"]
-        and (is_AllowedQuestInfo.level > (unit.GetLevel(avatar.GetId()) - 4))) then return true end
+    if (workedQuests["DestinyPoints"] and questInfo.canBeSkipped and not IsMaxLevelReached()
+        and (questInfo.level > (unit.GetLevel(avatar.GetId()) - 4))) then return true end
 
     -- если имя квеста есть в юзер.таблице квестов как ключ со значением true
-    if commonQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(is_AllowedQuestInfo.name))] then
-        if debug then LogInfo("Finded ", is_AllowedQuestInfo.sysName, " for ", is_AllowedQuestInfo.name) end
+    if commonQuestsTable[localization][fromWScore(common.ExtractWStringFromValuedText(questInfo.name))] then
+        if debug then LogInfo("Finded ", questInfo.sysName, " for ", questInfo.name) end
     return true end
 
 return false end
@@ -156,17 +172,12 @@ return false end
 function ReturnThisQuests(uQTreadyToAccept)
     -- обходим таблицу квестов у NPC/Device в таргете, которые он может принять
     for i, id in pairs(uQTreadyToAccept) do
-        local returnThisQuestsInfo = avatar.GetQuestInfo(id)
-        -- если квест - не из Царства Стихий, то
-        if commonQuestsTable["sysNames"][returnThisQuestsInfo.sysName] ~= "KingdomOfElements" then
-            -- объявим таблицу наградных предметов
+        local questInfo = avatar.GetQuestInfo(id)
+        if not zoneExceptions[localization][fromWScore(questInfo.zoneName)] then
             local itemsQuestsReward = avatar.GetQuestReward(id).alternativeItems
-            -- если таблица наградных предметов пуста, то
             if IsEmpty(itemsQuestsReward) then
                 avatar.ReturnQuest(id, nil)
             else
-                -- сдать квест, выбрав первый предмет из списка наград
-                -- !! Проверить, что таблица наградных предметов содержит нулевой индекс
                 avatar.ReturnQuest(id, itemsQuestsReward[0])
             end
         end
