@@ -192,7 +192,7 @@ function On_EVENT_QUEST_RECEIVED(params)
     -- получим id квеста из параметров события
     local qid = params.questId
     -- если квест сдаётся за очки судьбы, то
-    if avatar.GetQuestInfo(qid).canBeSkipped then
+    if false and avatar.GetQuestInfo(qid).canBeSkipped then
         -- если количество необходимых для сдачи квеста очков судьбы меньше или равно количеству очков судьбы у аватара, то
         if avatar.GetSkipQuestCost(qid) <= avatar.GetDestinyPoints().total then
             avatar.SkipQuest(qid)
@@ -234,6 +234,7 @@ end
 
 -- Выполнить квест за очки судьбы, возвращает количество необходимых для сдачи всех квестов очков судьбы
 function SkipQuests()
+    if true then return end
     -- объявим таблицу имеющихся у аватара квестов
     local qTable = avatar.GetQuestBook()
     -- если таблица пуста, то
