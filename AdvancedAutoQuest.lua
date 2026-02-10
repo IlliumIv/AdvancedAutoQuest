@@ -54,6 +54,7 @@ function On_EVENT_INTERACTION_STARTED()
     local currentInterlocutor = avatar.GetInterlocutor()
     if currentInterlocutor then
         local idInteractor = avatar.GetInteractorInfo().interactorId
+        -- LogInfo(fromWScore(object.GetName(idInteractor)))
         if not npcExceptions[localization][fromWScore(object.GetName(idInteractor))] then
             Talk(currentInterlocutor, idInteractor)
         else
@@ -249,6 +250,7 @@ function Talk(cIlr, iId, objectivesCuesTable)
     local answers = avatar.GetInteractorNextCues()
     if answers[0] then
         -- LogInfo(answers)
+        -- if true then return end
         if not IsEmpty(objectivesCuesTable) then
             for objectivesCuesTable_key, _ in pairs(objectivesCuesTable) do
                 for cueIndex, _ in pairs(answers) do
