@@ -61,6 +61,7 @@ function On_EVENT_INTERACTION_STARTED()
             local currentSpecialQuestsTable = {}
             local avatarQuestBook = avatar.GetQuestBook()
             for _, id in pairs(avatarQuestBook) do
+                -- LogInfo("[[", avatar.GetQuestInfo(id).name, "]]")
                 if Is_SpecialQuest(id) then
                     table.insert(currentSpecialQuestsTable, #currentSpecialQuestsTable + 1, id)
                 end
@@ -71,8 +72,9 @@ function On_EVENT_INTERACTION_STARTED()
             else
                 for _, id in pairs(currentSpecialQuestsTable) do
                     local questActions = specialQuestsTable[localization][userMods.FromValuedText(avatar.GetQuestInfo(id).name, true)]
+                    -- LogInfo("[[", avatar.GetQuestInfo(id).name, "]]")
                     for objectName, objectAction in pairs(questActions.objects) do
-                        -- LogInfo(objectName)
+                        -- LogInfo("[[", objectName, "]]")
                         if (objectName == fromWScore(object.GetName(idInteractor))) then
                             if objectAction.type == "Talk" then
                                 Talk(currentInterlocutor, idInteractor, objectAction.objectivesCues)
