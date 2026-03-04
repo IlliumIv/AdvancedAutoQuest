@@ -72,12 +72,16 @@ function On_EVENT_INTERACTION_STARTED()
             else
                 for _, id in pairs(currentSpecialQuestsTable) do
                     local questActions = specialQuestsTable[localization][userMods.FromValuedText(avatar.GetQuestInfo(id).name, true)]
-                    -- LogInfo("[[", avatar.GetQuestInfo(id).name, "]]")
+                    -- LogInfo(userMods.FromValuedText(avatar.GetQuestInfo(id).name, true))
+                    -- LogInfo(questActions)
                     for objectName, objectAction in pairs(questActions.objects) do
                         -- LogInfo("[[", objectName, "]]")
                         if (objectName == fromWScore(object.GetName(idInteractor))) then
                             if objectAction.type == "Talk" then
                                 Talk(currentInterlocutor, idInteractor, objectAction.objectivesCues)
+                            end
+                            if objectAction.type == "Special Talk" then
+                                Talk(currentInterlocutor, idInteractor, objectAction.objectivesCues, true)
                             end
                         end
                     end
@@ -248,23 +252,44 @@ function Is_SpecialQuest(questId)
     return false
 end
 
-function Talk(cIlr, iId, objectivesCuesTable)
+function Talk(currentInterlocutor, idInteractor, objectivesCuesTable, isSpecialTalk)
     local answers = avatar.GetInteractorNextCues()
     if answers[0] then
         -- LogInfo(answers)
+        -- LogInfo(isSpecialTalk)
         -- if true then return end
         if not IsEmpty(objectivesCuesTable) then
-            for objectivesCuesTable_key, _ in pairs(objectivesCuesTable) do
+            if isSpecialTalk then
+                local currentCue = avatar.GetInteractorCue()
+                currentCue = userMods.FromValuedText(currentCue.text, true)
+                -- LogInfo(currentCue)
+                -- LogInfo(userMods.FromValuedText(currentCue.text, true))
                 for cueIndex, _ in pairs(answers) do
                     -- LogInfo(fromWScore(answers[cueIndex].name))
-                    if fromWScore(answers[cueIndex].name) == objectivesCuesTable[objectivesCuesTable_key] then
-                        avatar.SelectInteractorCue(cueIndex)
+                    for specialCue_key, specialCue in pairs(objectivesCuesTable) do
+                        -- LogInfo(fromWScore(answers[cueIndex].name))
+                        if currentCue == specialCue.targetCue or string.match(currentCue, specialCue.targetCue) then
+                            local cueIsEqualOrContain = fromWScore(answers[cueIndex].name) == objectivesCuesTable[specialCue_key].cue or string.match(fromWScore(answers[cueIndex].name), objectivesCuesTable[specialCue_key].cue)
+                            if cueIsEqualOrContain then
+                                -- LogInfo(fromWScore(answers[cueIndex].name))
+                                avatar.SelectInteractorCue(cueIndex)
+                            end
+                        end
+                    end
+                end
+            else
+                for objectivesCuesTable_key, _ in pairs(objectivesCuesTable) do
+                    for cueIndex, _ in pairs(answers) do
+                        local cueIsEqualOrContain = fromWScore(answers[cueIndex].name) == objectivesCuesTable[objectivesCuesTable_key] or string.match(fromWScore(answers[cueIndex].name), objectivesCuesTable[objectivesCuesTable_key])
+                        if cueIsEqualOrContain then
+                            avatar.SelectInteractorCue(cueIndex)
+                        end
                     end
                 end
             end
         else
-            if object.IsUnit(iId) then
-                if unit.GetRelatedQuestObjectives(cIlr) then
+            if object.IsUnit(idInteractor) then
+                if unit.GetRelatedQuestObjectives(currentInterlocutor) then
                     avatar.SelectInteractorCue(0)
                     return
                 end
@@ -273,7 +298,7 @@ function Talk(cIlr, iId, objectivesCuesTable)
                     return
                 end
             else
-                if device.GetRelatedQuestObjectives(cIlr) then
+                if device.GetRelatedQuestObjectives(currentInterlocutor) then
                     avatar.SelectInteractorCue(#answers)
                     return
                 end
